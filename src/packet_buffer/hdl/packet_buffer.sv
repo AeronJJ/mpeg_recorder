@@ -1,9 +1,9 @@
 `default_nettype none
 module packet_buffer 
   #(
-    parameter ADDR_WIDTH = 8,
+    parameter ADDR_WIDTH = 6,
     parameter MEM_WIDTH = 32,
-    parameter PACKET_LENGTH = 188
+    parameter PACKET_LENGTH = 188/4
     )
    (
     input wire			  rst_n,
@@ -26,6 +26,9 @@ module packet_buffer
 	 // Eh
       end
       else if (w_en) begin
+	 // if (w_addr == '0) begin
+	 //    $display("Write Address = 0, Write Data = 0x%h", w_data);
+	 // end
 	 buffer[w_addr] <= w_data;
       end
    end
@@ -36,6 +39,9 @@ module packet_buffer
       end
       else if (r_en) begin
 	 r_data <= buffer[r_addr];
+	 // if (r_addr == '0) begin
+	 //    $display("Read Address = 0, Read Data = 0x%h", buffer[r_addr]);
+	 // end
       end
    end
 

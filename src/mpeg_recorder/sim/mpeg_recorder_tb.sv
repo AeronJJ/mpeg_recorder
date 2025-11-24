@@ -82,7 +82,8 @@ module mpeg_recorder_tb;
       for (i = 0; i < MEM_SIZE; i++) begin
 	 $display("Byte %0d = 0x%02X", i, mem[i]);
 	 mpeg_data_8_i = mem[i];
-	 #(2 * MPEG_CLK_HALF_PERIOD_NS);
+	 @ (posedge mpeg_clk_6MHz_i);
+	 //#(2 * MPEG_CLK_HALF_PERIOD_NS);
 	 // You can drive it into your DUT here:
          // dut.data_in <= mem[i];
          // #10;  // or your clock-based sequencing
