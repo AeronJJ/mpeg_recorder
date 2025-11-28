@@ -131,22 +131,23 @@ def log(msg):
 def main():
     global verbose
     verbose = False
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: python gen_tb.py name [-v] [-h]")
-        return -1
-    if '-h' in sys.argv:
-        print("Usage: python gen_tb.py name [-v] [-h]")
-        print("or mpeg_gen_tb name [-v] [-h]")
-        print("Must be used within $PROJ_ROOT/src/*name*")
-        return -1
-    if len(sys.argv) == 3:
-        if sys.argv[2] == "-v":
+    name = ''
+    for cmd in sys.argv:
+        if cmd == '-h':
+            print("Usage: python gen_tb.py name [-v] [-h]")
+            print("or mpeg_gen_tb name [-v] [-h]")
+            print("Must be used within $PROJ_ROOT/src/*name*")
+            return -1
+        else if cmd == "-v":
             verbose = True
+        else if name == '':
+            name = cmd
         else:
+            print("Unknown usage")
             print("Usage: python gen_tb.py name [-v] [-h]")
             return -1
         
-    name = sys.argv[1]
+    # name = sys.argv[1]
     log(f"Design name = {name}")
     
     ports = get_ports(f'hdl/{name}.sv')
