@@ -52,40 +52,22 @@ module mpeg_recorder
    // //
 
    // Buffer 4 bytes of input mpeg data //
-   reg [MPEG_DATA_WIDTH - 1:0] mpeg_data_32 [MPEG_MEM_WIDTH - 1:0];
-   reg [1:0]		       mpeg_data_32_addr; // 2 bits = 4 addresses, 4*8 = 32 bits
+   wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
 
-   wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed = {mpeg_data_32[3], mpeg_data_32[2], mpeg_data_32[1], mpeg_data_32[0]};
+   byte_packer 
+     #(.NUM_WRITE_BITS(MPEG_DATA_WIDTH), .NUM_WRITES(MPEG_MEM_WIDTH)) 
+   mpeg_byte_packer 
+     (
+      .rst_n(rst_n),
+      .w_clk(mpeg_clk_6MHz),
+      .w_data(mpeg_data_8),
+      .en(running),
+      .sync(mpeg_sync),
+      .data_packed(mpeg_data_32_packed)
+      );
+   
+   
    reg [MPEG_MEM_LENGTH - 1:0]	w_data;
-      
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
-      if (~rst_n) begin
-	 mpeg_data_32[0] <= '0;
-	 mpeg_data_32[1] <= '0;
-	 mpeg_data_32[2] <= '0;
-	 mpeg_data_32[3] <= '0;
-      end
-      else if (running) begin
-	 mpeg_data_32[mpeg_data_32_addr] <= mpeg_data_8;
-      end
-   end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
-
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
-      if (~rst_n) begin
-	 mpeg_data_32_addr <= '0;
-      end
-      else if (running) begin
-	 if (mpeg_sync) begin
-	    mpeg_data_32_addr <= '0;
-	 end
-	 else begin
-	    mpeg_data_32_addr <= mpeg_data_32_addr + 1'b1;
-	 end
-      end
-      else begin
-	 mpeg_data_32_addr <= '0;
-      end
-   end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
 
    always_ff @ (posedge clk_1M5Hz or negedge rst_n) begin
       if (~rst_n) begin
