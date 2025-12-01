@@ -16,7 +16,7 @@ module mpeg_read_addr_gen
 
    assign r_end = (r_addr == MPEG_ADDR_WIDTH'(MPEG_PACKET_LENGTH - 1));
    
-   always_ff @ (posedge r_clk or negedge rst_n) begin
+   always_ff @ (negedge r_clk or negedge rst_n) begin
       if (~rst_n) begin
 	 r_addr <= MPEG_ADDR_WIDTH'(MPEG_PACKET_LENGTH - 1);
       end

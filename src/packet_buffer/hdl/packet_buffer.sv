@@ -33,7 +33,7 @@ module packet_buffer
       end
    end
 
-   always_ff @ (posedge r_clk or negedge rst_n) begin
+   always_ff @ (negedge r_clk or negedge rst_n) begin
       if (~rst_n) begin
 	 r_data <= '0;
       end

@@ -23,7 +23,7 @@ module byte_packer
 
    genvar			  i;
    generate
-      for (i=0; i < NUM_WRITES; i++) begin
+      for (i=0; i < NUM_WRITES; i++) begin : pack_data
 	 assign data_packed[(NUM_WRITES-1-i)*NUM_WRITE_BITS +: NUM_WRITE_BITS] = data_arr[i];
       end
    endgenerate
