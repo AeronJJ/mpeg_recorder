@@ -1,4 +1,6 @@
 *~
+*.sr
+*.csv
 *.vcd
 *.qpf
 *.qsf
@@ -19,3 +21,4 @@ output_files/
 src/mpeg_recorder/hdl/packet_buffer.sv
 src/mpeg_recorder/hdl/mpeg_read_addr_gen.sv
 src/mpeg_recorder/hdl/byte_packer.sv
+src/mpeg_recorder/hdl/byte_unpacker.sv
