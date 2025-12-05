@@ -138,9 +138,9 @@ def main():
             print("or mpeg_gen_tb name [-v] [-h]")
             print("Must be used within $PROJ_ROOT/src/*name*")
             return -1
-        else if cmd == "-v":
+        elif cmd == "-v":
             verbose = True
-        else if name == '':
+        elif name == '':
             name = cmd
         else:
             print("Unknown usage")
