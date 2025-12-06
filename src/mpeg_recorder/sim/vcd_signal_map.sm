@@ -1,0 +1,10 @@
+mpeg_sync_i=libsigrok.Sync
+mpeg_valid_i=libsigrok.Valid
+mpeg_data_8_i[0]=libsigrok.D0
+mpeg_data_8_i[1]=libsigrok.D1
+mpeg_data_8_i[2]=libsigrok.D2
+mpeg_data_8_i[3]=libsigrok.D3
+mpeg_data_8_i[4]=libsigrok.D4
+mpeg_data_8_i[5]=libsigrok.D5
+mpeg_data_8_i[6]=libsigrok.D6
+mpeg_data_8_i[7]=libsigrok.D7
