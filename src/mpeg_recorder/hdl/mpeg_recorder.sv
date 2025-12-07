@@ -29,30 +29,6 @@ module mpeg_recorder
     );
 
    assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
-   
-   // 1.5 MHz clock gen for 32 bit data //
-   reg clk_3MHz;
-   reg clk_1M5Hz;
-
-   always_ff @ (posedge mpeg_clk_6MHz or posedge mpeg_sync) begin
-      if (mpeg_sync) begin
-	 clk_3MHz <= 1'b1;
-      end
-      else begin
-	 clk_3MHz <= ~clk_3MHz;
-      end
-   end
-
-   always_ff @ (posedge clk_3MHz or posedge mpeg_sync) begin
-      if (mpeg_sync) begin
-	 clk_1M5Hz <= 1'b1;
-      end
-      else begin
-	 clk_1M5Hz <= ~clk_1M5Hz;
-      end
-   end
-   
-   // //
 
    // Buffer 4 bytes of input mpeg data //
    wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
@@ -103,12 +79,10 @@ module mpeg_recorder
    
    reg [MPEG_ADDR_WIDTH - 1:0] w_addr;
    reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr_tmp;
-   // assign w_addr = w_addr_tmp[MPEG_ADDR_WIDTH - 1 + 2:2];
 
    always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
       if (~rst_n) begin
 	 w_addr_tmp <= '0;
-	 // w_en_mem0 <= ~w_en_mem0;
 	 w_addr <= '0;
       end
       else if (running) begin
@@ -137,22 +111,13 @@ module mpeg_recorder
    // //
 
    // Create packet buffers //
-   // reg w_en_mem0;
-   // reg w_en_mem1;
-
-   wire [MPEG_ADDR_WIDTH - 1:0] r_addr;
-   // wire				r_en_mem0;
-   // wire				r_en_mem1;
-
-   // assign r_en_mem0 = ~w_en_mem0;
-   // assign r_en_mem1 = ~w_en_mem1;
    
    wire [MPEG_MEM_LENGTH - 1:0] r_data_mem0;
    wire [MPEG_MEM_LENGTH - 1:0] r_data_mem1;
 
    reg				r_data_switch;
    
-   always_ff @ (negedge clk_1M5Hz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
       if (~rst_n) begin
 	 r_data_switch <= 1'b0;
       end
@@ -199,31 +164,9 @@ module mpeg_recorder
       );
    // //
 
-   // Read Address Gen //
-   wire read_addr_gen_en;
-   assign read_addr_gen_en = (byte_unpacker_en ^ byte_unpacker_en_d) & byte_unpacker_en;
-   reg	byte_unpacker_en_d;
-   always_ff @ (posedge clk_1M5Hz or negedge rst_n) begin
-      if (~rst_n) begin
-	 byte_unpacker_en_d <= 1'b0;
-      end
-      else begin
-	 byte_unpacker_en_d <= byte_unpacker_en;
-      end
-   end
-   wire r_done;
-   mpeg_read_addr_gen #(.MPEG_ADDR_WIDTH(MPEG_ADDR_WIDTH), .MPEG_PACKET_LENGTH(MPEG_PACKET_LENGTH)) mpeg_read_addr_gen
-     (
-      .rst_n(rst_n),
-      .r_clk(clk_1M5Hz),
-      .en(running),
-      .start(read_addr_gen_en),
-      .r_addr(r_addr),
-      .r_end(r_done)
-      );
+   // Byte unpacker and controller//
 
    // Unpack data //
-   // wire mpeg_sync_out;
    byte_unpacker
      #(.NUM_READ_BITS(), .NUM_READS())
    mpeg_byte_unpacker
@@ -241,14 +184,6 @@ module mpeg_recorder
    wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0] mpeg_controller_addr;
    reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]	 mpeg_controller_addr_d;
 
-   // wire						 mpeg_controller_sync_out;
-   // reg						 mpeg_controller_sync_out_d;
-   // assign mpeg_sync_out = mpeg_controller_sync_out_d;
-   
-   // wire						 mpeg_controller_valid_out;
-   // reg						 mpeg_controller_valid_out_d;
-   // assign mpeg_valid_out = mpeg_controller_valid_out_d;
-
    always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
       if (~rst_n) begin
 	 mpeg_controller_addr_d <= '0;
@@ -257,17 +192,6 @@ module mpeg_recorder
 	 mpeg_controller_addr_d <= mpeg_controller_addr;
       end
    end
-   
-   // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
-   //    if (~rst_n) begin
-   // 	 mpeg_controller_sync_out_d <= 1'b0;
-   // 	 mpeg_controller_valid_out_d <= 1'b0;
-   //    end
-   //    else begin
-   // 	 mpeg_controller_sync_out_d <= mpeg_controller_sync_out;
-   // 	 mpeg_controller_valid_out_d <= mpeg_controller_valid_out;
-   //    end
-   // end
 
    wire word_r_en;
    
@@ -285,35 +209,9 @@ module mpeg_recorder
       .word_r_en(word_r_en)
       );
    
-   
-   // //
-
-   // wire [7:0] mpeg_data_8_out;
-   
-   // Generate new sync pulse //
-   // reg [1:0] unpacked_addr;
-   // reg mpeg_sync_out;
-   // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
-   //    if (~rst_n) begin
-   // 	 mpeg_sync_out <= 1'b0;
-   //    end
-   //    else if (running) begin
-   // 	 if (r_addr == MPEG_ADDR_WIDTH'(1) && unpacked_addr == '0) begin
-   // 	    mpeg_sync_out <= 1'b1;
-   // 	 end
-   // 	 else begin
-   // 	    mpeg_sync_out <= 1'b0;
-   // 	 end
-   //    end
-   //    else begin
-   // 	 mpeg_sync_out <= 1'b0;
-   //    end
-   // end
-   // // //
-   
    // //
    
-   // Finite State Machine for 6MHz domain control //
+   // running control //
    reg running;
    reg en_running;
 
@@ -340,99 +238,6 @@ module mpeg_recorder
 	 en_running <= 1'b0;
       end
    end
-   
-   localparam N_STATES = 3;
-
-   localparam s_IDLE = N_STATES'(0);
-   localparam s_WAIT_FOR_SYNC = N_STATES'(1);
-   localparam s_WRITE_MEM0 = N_STATES'(2);
-   localparam s_WRITE_MEM1 = N_STATES'(3);
-   localparam s_DONE = N_STATES'(4);
-   
-   reg [N_STATES - 1:0] current_state;
-   reg [N_STATES - 1:0] next_state;
-
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
-      if (~rst_n) begin
-	 current_state <= s_IDLE;
-      end
-      else begin
-	 current_state <= next_state;
-	 case (current_state)
-	   s_IDLE: begin
-	      // en_running <= 1'b0;
-	   end
-
-	   s_WAIT_FOR_SYNC: begin
-	      // en_running <= 1'b1;	      
-	   end
-
-	   s_WRITE_MEM0: begin
-	      // en_running <= 1'b1;
-	      // w_en_mem0 <= 1'b1;
-	      // w_en_mem1 <= 1'b0;
-	   end
-
-	   s_WRITE_MEM1: begin
-	      // en_running <= 1'b1;
-	      // w_en_mem0 <= 1'b0;
-	      // w_en_mem1 <= 1'b1;	      
-	   end
-
-	   s_DONE: begin
-	      // en_running <= 1'b0;
-	   end
-
-	   default: begin
-	      // en_running <= 1'b0;
-	   end
-	 endcase // case (current_state)
-      end
-   end // always_ff @ (posedge clk_1M5Hz or negedge rst_n)
-   
-   always_comb begin
-      next_state = current_state;
-      case (current_state)
-	s_IDLE: begin
-	   if (start) begin
-	      next_state = s_WAIT_FOR_SYNC;
-	   end
-	end
-
-	s_WAIT_FOR_SYNC: begin
-	   if (mpeg_sync) begin
-	      next_state = s_WRITE_MEM0;
-	   end
-	end
-
-	s_WRITE_MEM0: begin
-	   if (packet_done) begin
-	      next_state = s_WRITE_MEM1;
-	   end
-	   else if (stop) begin
-	      next_state = s_DONE;
-	   end
-	end
-
-	s_WRITE_MEM1: begin
-	   if (packet_done) begin
-	      next_state = s_WRITE_MEM0;
-	   end
-	   else if (stop) begin
-	      next_state = s_DONE;
-	   end
-	end
-
-	s_DONE: begin
-	   next_state = s_IDLE;
-	end
-
-	default: begin
-	   next_state = s_IDLE;
-	end
-      endcase // case (current_state)
-   end // always_comb
-   // //
    
 endmodule // mpeg_recorder
 `default_nettype wire
