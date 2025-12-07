@@ -29,6 +29,7 @@ module mpeg_recorder
     );
 
    assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+   
 
    // Buffer 4 bytes of input mpeg data //
    wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
