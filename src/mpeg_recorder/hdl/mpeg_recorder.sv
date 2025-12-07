@@ -23,12 +23,11 @@ module mpeg_recorder
 
     output wire				mpeg_clk_6MHz_out,
     output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
-    output wire [MPEG_MEM_LENGTH - 1:0]	r_data,
     output wire				mpeg_sync_out,
     output reg				mpeg_valid_out
     );
 
-   assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+   assign mpeg_clk_6MHz_out = ~mpeg_clk_6MHz;
    
 
    // Buffer 4 bytes of input mpeg data //
@@ -81,17 +80,25 @@ module mpeg_recorder
    reg [MPEG_ADDR_WIDTH - 1:0] w_addr;
    reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr_tmp;
 
+   reg				   packet_started;
+   
+
    always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
       if (~rst_n) begin
 	 w_addr_tmp <= '0;
 	 w_addr <= '0;
+	 packet_started <= 1'b0;
       end
       else if (running) begin
 	 if (mpeg_sync) begin
 	    w_addr_tmp <= '0;
 	    w_addr <= '0;
+	    packet_started <= 1'b1;
 	 end
-	 else begin
+	 else if (packet_done_pulse) begin
+	    packet_started <= 1'b0;
+	 end
+	 else if (packet_started) begin
 	    w_addr_tmp <= w_addr_tmp + 1'b1;
 	    w_addr <= w_addr_tmp[MPEG_ADDR_WIDTH - 1 + 2:2];
 	 end
@@ -112,7 +119,7 @@ module mpeg_recorder
    // //
 
    // Create packet buffers //
-   
+   wire [MPEG_MEM_LENGTH - 1:0] r_data;
    wire [MPEG_MEM_LENGTH - 1:0] r_data_mem0;
    wire [MPEG_MEM_LENGTH - 1:0] r_data_mem1;
 

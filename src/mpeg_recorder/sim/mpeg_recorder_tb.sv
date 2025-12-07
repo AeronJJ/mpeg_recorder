@@ -21,7 +21,6 @@ module mpeg_recorder_tb;
 
    wire			       mpeg_clk_6MHz_out_o;
    wire [MPEG_DATA_WIDTH - 1:0]	mpeg_data_8_out_o;
-   wire [MPEG_MEM_LENGTH - 1:0]	r_data_o;
    wire				mpeg_sync_out_o;
    wire				mpeg_valid_out_o;
    
@@ -39,7 +38,6 @@ module mpeg_recorder_tb;
       .stop(stop_i),
       .mpeg_clk_6MHz_out(mpeg_clk_6MHz_out_o),
       .mpeg_data_8_out(mpeg_data_8_out_o),
-      .r_data(r_data_o),
       .mpeg_sync_out(mpeg_sync_out_o),
       .mpeg_valid_out(mpeg_valid_out_o)
       );
