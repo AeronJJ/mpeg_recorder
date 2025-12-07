@@ -1,0 +1,3 @@
+[submodule "scripts/vcd2v"]
+	path = scripts/vcd2v
+	url = https://github.com/AeronJJ/mpeg_vcd2v.git
