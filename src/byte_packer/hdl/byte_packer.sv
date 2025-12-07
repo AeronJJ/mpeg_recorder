@@ -9,14 +9,24 @@ module byte_packer
     
     input wire			      w_clk,
     input wire [NUM_WRITE_BITS - 1:0] w_data,
-
-    input			      en,
-    input			      sync, // Sync read clock to write clock
-
+    input wire			      en,   // Valid & running
+    output reg			      w_en,
     output wire [NUM_READ_BITS - 1:0] data_packed
     );
 
    localparam NUM_READ_BITS = NUM_WRITES * NUM_WRITE_BITS;
+
+   always_ff @ (negedge w_clk or negedge rst_n) begin
+      if (~rst_n) begin
+	 w_en <= 1'b0;
+      end
+      else if (en) begin
+	 w_en <= (data_arr_addr == $clog2(NUM_WRITES)'(3));
+      end
+      else begin
+	 w_en <= 1'b0;
+      end
+   end
 
    reg [NUM_WRITE_BITS - 1:0] data_arr [NUM_WRITES - 1:0];
    reg [$clog2(NUM_WRITES) - 1:0] data_arr_addr;
@@ -45,12 +55,7 @@ module byte_packer
 	 data_arr_addr <= '0;
       end
       else if (en) begin
-	 if (sync) begin
-	    data_arr_addr <= '0;
-	 end
-	 else begin
-	    data_arr_addr <= data_arr_addr + 1'b1;
-	 end
+	 data_arr_addr <= data_arr_addr + 1'b1;
       end
       else begin
 	 data_arr_addr <= '0;

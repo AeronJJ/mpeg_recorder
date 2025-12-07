@@ -2,6 +2,7 @@ import os
 import sys
 import re
 from dataclasses import dataclass
+import argparse
 
 @dataclass
 class Port_Object:
@@ -127,25 +128,48 @@ def log(msg):
     if (verbose):
         print(msg)
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate a testbench."
+    )
+
+    # Positional argument: name
+    parser.add_argument(
+        "name",
+        help="Name for the generated testbench"
+    )
+
+    # Optional flag: verbose
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose output"
+    )
+
+    # -h / --help is automatically added by argparse
+
+    return parser.parse_args()
+
 # Get args from command line and generate sim folder if not existing
 def main():
     global verbose
-    verbose = False
-    name = ''
-    for cmd in sys.argv:
-        if cmd == '-h':
-            print("Usage: python gen_tb.py name [-v] [-h]")
-            print("or mpeg_gen_tb name [-v] [-h]")
-            print("Must be used within $PROJ_ROOT/src/*name*")
-            return -1
-        elif cmd == "-v":
-            verbose = True
-        elif name == '':
-            name = cmd
-        else:
-            print("Unknown usage")
-            print("Usage: python gen_tb.py name [-v] [-h]")
-            return -1
+    args = parse_args()
+    verbose = args.verbose
+    name = args.name
+    # for cmd in sys.argv:
+    #     if cmd == '-h':
+    #         print("Usage: python gen_tb.py name [-v] [-h]")
+    #         print("or mpeg_gen_tb name [-v] [-h]")
+    #         print("Must be used within $PROJ_ROOT/src/*name*")
+    #         return -1
+    #     elif cmd == "-v":
+    #         verbose = True
+    #     elif name == '':
+    #         name = cmd
+    #     else:
+    #         print("Unknown usage")
+    #         print("Usage: python gen_tb.py name [-v] [-h]")
+    #         return -1
         
     # name = sys.argv[1]
     log(f"Design name = {name}")

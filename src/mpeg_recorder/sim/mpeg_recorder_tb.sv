@@ -44,13 +44,28 @@ module mpeg_recorder_tb;
       .mpeg_valid_out(mpeg_valid_out_o)
       );
 
+   always begin
+      while (~mpeg_sync_i) begin
+	 #1;
+      end
+      // @ (posedge mpeg_sync_i);
+      mpeg_clk_6MHz_i = 1'b1;
+      fork
+	 forever begin
+	    #(MPEG_CLK_HALF_PERIOD_NS) mpeg_clk_6MHz_i = ~mpeg_clk_6MHz_i;
+	 end
+	 @ (posedge mpeg_sync_i);
+      join_any
+      disable fork;
+   end
+
    always #(CLK_HALF_PERIOD_NS) begin
       sys_clk_40MHz_i = ~sys_clk_40MHz_i;
    end
 
-   always #(MPEG_CLK_HALF_PERIOD_NS) begin
-      mpeg_clk_6MHz_i = ~mpeg_clk_6MHz_i;
-   end
+   // always #(MPEG_CLK_HALF_PERIOD_NS) begin
+   //    mpeg_clk_6MHz_i = ~mpeg_clk_6MHz_i;
+   // end
    
    initial begin
       $dumpfile("waves.vcd");
