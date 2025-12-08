@@ -21,7 +21,7 @@ module packet_buffer
 
    reg [MEM_WIDTH - 1:0] buffer [PACKET_LENGTH - 1:0];
 
-   always_ff @ (posedge w_clk or negedge rst_n) begin
+   always_ff @ (negedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 // Eh
       end
@@ -33,7 +33,7 @@ module packet_buffer
       end
    end
 
-   always_ff @ (negedge r_clk or negedge rst_n) begin
+   always_ff @ (posedge r_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_data <= '0;
       end

@@ -16,7 +16,7 @@ module byte_packer
 
    localparam NUM_READ_BITS = NUM_WRITES * NUM_WRITE_BITS;
 
-   always_ff @ (negedge w_clk or negedge rst_n) begin
+   always_ff @ (posedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 w_en <= 1'b0;
       end
@@ -39,7 +39,7 @@ module byte_packer
    endgenerate
    
       
-   always_ff @ (negedge w_clk or negedge rst_n) begin
+   always_ff @ (posedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 for (int i = 0; i < NUM_WRITES; i++) begin
 	    data_arr[i] <= '0;
@@ -50,17 +50,28 @@ module byte_packer
       end
    end // always_ff @ (negedge w_clk or negedge rst_n) 
       
-   always_ff @ (posedge w_clk or negedge rst_n) begin
+   always_ff @ (negedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 data_arr_addr <= '0;
       end
-      else if (en) begin
+      else if (start) begin
 	 data_arr_addr <= data_arr_addr + 1'b1;
       end
       else begin
 	 data_arr_addr <= '0;
       end
    end // always_ff @ (posedge w_clk or negedge rst_n)
+
+   reg start;
+   
+   always_ff @ (posedge w_clk or negedge rst_n) begin
+      if (~rst_n) begin
+	 start <= 1'b0;
+      end
+      else begin
+	 start <= en;
+      end
+   end
 
 endmodule // byte_packer
 `default_nettype wire

@@ -25,7 +25,7 @@ module mpeg_controller
    assign mpeg_sync_out = (r_addr_internal == ADDR_WIDTH'(1));
    assign mpeg_valid_out = (r_addr_internal != ADDR_WIDTH'(0));
       
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_en_internal <= 1'b0;
       end
@@ -37,7 +37,7 @@ module mpeg_controller
       end
    end
 
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_addr_internal <= ADDR_WIDTH'(0);
       end
@@ -49,7 +49,7 @@ module mpeg_controller
       end
    end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
 
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 word_r_en <= 1'b0;
       end

@@ -19,7 +19,7 @@ module byte_unpacker
 
    localparam NUM_WRITE_BITS = NUM_READ_BITS * NUM_READS;
 
-   always_ff @ (posedge r_clk or negedge rst_n) begin
+   always_ff @ (negedge r_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_data <= '0;
       end

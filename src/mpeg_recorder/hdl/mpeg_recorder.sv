@@ -27,7 +27,7 @@ module mpeg_recorder
     output reg				mpeg_valid_out
     );
 
-   assign mpeg_clk_6MHz_out = ~mpeg_clk_6MHz;
+   assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
    
 
    // Buffer 4 bytes of input mpeg data //
@@ -54,7 +54,7 @@ module mpeg_recorder
    reg	packet_done_d;
    assign packet_done = (packet_done_r ^ packet_done_d) & packet_done_r;
    assign packet_done_r = (w_addr == MPEG_ADDR_WIDTH'(MPEG_PACKET_LENGTH)) ? 1'b1 : 1'b0;
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 packet_done_d <= 1'b0;
       end
@@ -64,7 +64,7 @@ module mpeg_recorder
    end
 
    reg packet_done_pulse;
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 packet_done_pulse <= 1'b0;
       end
@@ -83,7 +83,7 @@ module mpeg_recorder
    reg				   packet_started;
    
 
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 w_addr_tmp <= '0;
 	 w_addr <= '0;
@@ -105,7 +105,7 @@ module mpeg_recorder
       end
    end // always_ff @ (negedge mpeg_clk_6MHz or posedge mpeg_sync)
 
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 w_en_mem0 <= 1'b0;
       end
@@ -125,7 +125,7 @@ module mpeg_recorder
 
    reg				r_data_switch;
    
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_data_switch <= 1'b0;
       end
@@ -192,7 +192,7 @@ module mpeg_recorder
    wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0] mpeg_controller_addr;
    reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]	 mpeg_controller_addr_d;
 
-   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 mpeg_controller_addr_d <= '0;
       end
@@ -223,7 +223,7 @@ module mpeg_recorder
    reg running;
    reg en_running;
 
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 running <= 1'b0;
       end
@@ -235,7 +235,7 @@ module mpeg_recorder
       end
    end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
 
-   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+   always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 en_running <= 1'b0;
       end

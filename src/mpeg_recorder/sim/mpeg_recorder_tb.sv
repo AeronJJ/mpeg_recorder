@@ -29,7 +29,7 @@ module mpeg_recorder_tb;
    mpeg_recorder dut_mpeg_recorder
      (
       .rst_n(rst_n_i),
-      .mpeg_clk_6MHz(mpeg_clk_6MHz_i),
+      .mpeg_clk_6MHz(~mpeg_clk_6MHz_i),
       .mpeg_data_8(mpeg_data_8_i),
       .mpeg_sync(mpeg_sync_i),
       .mpeg_valid(mpeg_valid_i),
