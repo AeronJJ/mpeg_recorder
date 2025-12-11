@@ -7,7 +7,7 @@ GEN_DESIGN="$PROJ_ROOT/scripts/gen_design.py"
 mpeg_verilator() {
     if [ "$1" == "-vcd" ]; then
 	tmp_data=$(mktemp)
-	$VCD2V -i $2 --time :24000000 --scale 0.1 -m vcd_signal_map.sm > $tmp_data.sv
+	$VCD2V -i $2 --time :24000000 --scale 0.1 -f 6 -m vcd_signal_map.sm > $tmp_data.sv
 	tmp_tb=$(mktemp)
 
 	if ! python $MERGE_SV -t $3.sv -s $tmp_data.sv -o $tmp_tb.sv; then
