@@ -37,7 +37,7 @@ mpeg_gen_design() { # Must use from /MPEG/src/
     fi
 }
 
-mpeg_gen_tb() { # Must ust from /MPEG/src/DESIGN
+mpeg_gen_tb() { # Must use from /MPEG/src/DESIGN
     if [ "$1" == "-h" ]; then
 	echo "Usage: mpeg_gen_tb [-h] name [-v]"
 	echo "Must be used from $PROJ_ROOT/src/"
