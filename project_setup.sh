@@ -32,6 +32,7 @@ mpeg_gen_design() { # Must use from /MPEG/src/
 	echo "Usage: mpeg_gen_design name1"
 	echo "Must be used from $PROJ_ROOT/src/"
     else
+	cd $PROJ_ROOT/src/ && \
 	python $GEN_DESIGN $@
     fi
 }
@@ -41,6 +42,7 @@ mpeg_gen_tb() { # Must ust from /MPEG/src/DESIGN
 	echo "Usage: mpeg_gen_tb [-h] name [-v]"
 	echo "Must be used from $PROJ_ROOT/src/"
     else
+	cd $PROJ_ROOT/src/$1 && \
 	python $GEN_TB $@
     fi
 }
