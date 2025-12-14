@@ -43,9 +43,16 @@ module mpeg_recorder_tb;
       );
 
    always begin
-      while (~mpeg_sync_i) begin
-	 #1;
-      end
+      fork
+	 while (~mpeg_sync_i) begin
+	    #1;
+	 end
+	 forever begin
+	    #(MPEG_CLK_HALF_PERIOD_NS) mpeg_clk_6MHz_i = ~mpeg_clk_6MHz_i;
+	 end
+      join_any
+      disable fork;
+            
       // @ (posedge mpeg_sync_i);
       mpeg_clk_6MHz_i = 1'b1;
       fork
@@ -78,12 +85,12 @@ module mpeg_recorder_tb;
       #(6 * MPEG_CLK_HALF_PERIOD_NS);
 
       rst_n_i = 1'b1;
+      start_i = 1'b1;
 
       #(6 * MPEG_CLK_HALF_PERIOD_NS);
       
       @ (posedge mpeg_clk_6MHz_i);
       
-      start_i = 1'b1;
       #(6 * MPEG_CLK_HALF_PERIOD_NS);
       
       @ (posedge vcd_done);
@@ -130,8 +137,11 @@ module mpeg_recorder_tb;
    always begin
       @ (posedge output_record_done) begin
 	 total_packets += 1;
+	 $display("Reading input buffer %d, output buffer %d", mpeg_behavioural_recorder_input.read_buffer1, mpeg_behavioural_recorder_output.read_buffer1);
 	 if (buffer_input != buffer_output) begin
 	    // $display("Packet mismatch detected between input packet %0d and output packet %0d", );
+	    
+	    $display("Packet mismatch detected");
 	    packet_errors += 1;
 	 end
       end

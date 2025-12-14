@@ -12,7 +12,7 @@ mpeg_verilator() {
 
 	if ! python $MERGE_SV -t $3.sv -s $tmp_data.sv -o $tmp_tb.sv; then
 	    echo "merge_sv.py failed"
-	elif ! verilator --trace --timescale 1ns/100ps --binary $tmp_tb.sv -y ../hdl; then
+	elif ! verilator --coverage --trace --timescale 1ns/100ps --binary $tmp_tb.sv -y ../hdl; then
 	    echo "verilator failed"
 	elif ! ./obj_dir/Vtmp; then
 	    echo "Verilated program failed"
@@ -21,7 +21,7 @@ mpeg_verilator() {
 	fi
 	rm $tmp_data.sv $tmp_tb.sv
     else
-	verilator --trace --timescale 1ns/100ps --binary $1.sv -y ../hdl && \
+	verilator -Wall --coverage --trace --timescale 1ns/100ps --binary $1.sv -y ../hdl && \
 	    ./obj_dir/V$1 && \
 	    gtkwave waves.vcd &	
     fi
