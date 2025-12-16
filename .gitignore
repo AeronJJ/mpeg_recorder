@@ -9,6 +9,8 @@
 *.stp
 *.hex
 *.qws
+*.dat
+*.pvs
 
 obj_dir/
 
