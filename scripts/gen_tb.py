@@ -73,6 +73,8 @@ def get_ports(file):
 def parse_ports(string):
     # TODO: check whether multiple ports exist on same line
     string = string.replace('\t', ' ') # Remove tabs
+    if '//' in string:
+        string = string.split('//')[0] + '\n'
 
     # Find direction of port
     direction = ''
@@ -96,7 +98,7 @@ def parse_ports(string):
         width = string.split('[', 1)[1].split(']')[0]
 
     # Find name of port
-    name = string.rstrip('\n').replace(',', '').split(' ')[-1]
+    name = string.rstrip('\n').rstrip().replace(',', '').split(' ')[-1]
 
     return Port_Object(name=name, direction=direction, width=width, net=net)
 
