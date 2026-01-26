@@ -26,7 +26,7 @@ module byte_packer
       else begin
 	 w_en <= 1'b0;
       end
-   end
+   end // always_ff @ (posedge w_clk or negedge rst_n)
 
    reg [NUM_WRITE_BITS - 1:0] data_arr [NUM_WRITES - 1:0];
    reg [$clog2(NUM_WRITES) - 1:0] data_arr_addr;
@@ -37,7 +37,6 @@ module byte_packer
 	 assign data_packed[(NUM_WRITES-1-i)*NUM_WRITE_BITS +: NUM_WRITE_BITS] = data_arr[i];
       end
    endgenerate
-   
       
    always_ff @ (posedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
@@ -48,8 +47,8 @@ module byte_packer
       else if (en) begin
 	 data_arr[data_arr_addr] <= w_data;
       end
-   end // always_ff @ (negedge w_clk or negedge rst_n) 
-      
+   end
+   
    always_ff @ (negedge w_clk or negedge rst_n) begin //
       if (~rst_n) begin
 	 data_arr_addr <= '0;
@@ -60,10 +59,10 @@ module byte_packer
       else begin
 	 data_arr_addr <= '0;
       end
-   end // always_ff @ (posedge w_clk or negedge rst_n)
-
-   reg start;
+   end // always_ff @ (negedge w_clk or negedge rst_n)
    
+   reg start;
+
    always_ff @ (posedge w_clk or negedge rst_n) begin
       if (~rst_n) begin
 	 start <= 1'b0;
