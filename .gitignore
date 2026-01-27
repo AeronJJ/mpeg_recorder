@@ -24,3 +24,6 @@ src/mpeg_recorder/hdl/packet_buffer.sv
 src/mpeg_recorder/hdl/byte_packer.sv
 src/mpeg_recorder/hdl/byte_unpacker.sv
 src/mpeg_recorder/hdl/mpeg_controller.sv
+
+src/msp2807_controller/hdl/msp2807_coord_gen.sv
+src/msp2807_controller/hdl/msp2807_spi.sv
