@@ -25,7 +25,7 @@ module msp2807_spi
    /* verilator lint_off ASCRANGE */
    reg [0:DATA_COUNTER_WIDTH - 1] data_counter =  DATA_COUNTER_WIDTH'(0);
    /* verilator lint_on ASCRANGE */
-   reg				   internal_sck = 1'b1;
+   reg				   internal_sck;
 
    /* verilator lint_off ASCRANGE */
    wire [0:DATA_WIDTH - 1]	   reversed_data;
@@ -37,7 +37,7 @@ module msp2807_spi
    always_ff @ (posedge i_clk or negedge rst_n) begin
       if (~rst_n) begin
 	 internal_data <= '0;
-	 internal_sck <= 1'b0;
+	 internal_sck <= 1'b1;
 	 data_counter <= '0;
 	 o_busy <= 1'b0;
 	 o_dcrs <= 1'b0;

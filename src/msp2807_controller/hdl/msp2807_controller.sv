@@ -1,7 +1,7 @@
 `default_nettype none
 module msp2807_controller 
   #(
-    
+    parameter PLACEHOLDER = 1
     )
    (
     input wire	       rst_n,
