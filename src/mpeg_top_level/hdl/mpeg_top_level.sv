@@ -94,25 +94,17 @@ module mpeg_top_level
    // //
 
    // LCD //
-   msp2807_controller lcd0
+   mpeg_user_interface mpeg_user_interface0
      (
-      .rst_n(rst_n_gated),
+      .rst_n(rst_n),
       .sys_clk_100MHz(sys_clk_100MHz),
-      .pixel_data(16'hAFF5),
-      .pixel_available(1'b1),
-      .pixel_done(),
-      .o_cs(lcd_cs_out),
-      .o_dcrs(lcd_dcrs_out),
-      .o_sdi(lcd_sdi_out),
-      .o_sck(lcd_sck_out),
-      .o_lcdrst(lcd_lcdrst_out),
-      .rst_coord(1'b0),
-      .x(),
-      .y(),
-      .bufferIndex()
+      .mode(),
+      .lcd_cs_out(lcd_cs_out),
+      .lcd_dcrs_out(lcd_dcrs_out),
+      .lcd_sdi_out(lcd_sdi_out),
+      .lcd_sck_out(lcd_sck_out),
+      .lcd_lcdrst_out(lcd_lcdrst_out)
       );
-   
-   
    // //
    
 endmodule // mpeg_top_level

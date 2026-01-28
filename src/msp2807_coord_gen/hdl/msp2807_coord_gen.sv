@@ -33,7 +33,7 @@ module msp2807_coord_gen
 	 index <= '0;
       end
       else if (en) begin
-	 if (index == LCD_SIZE - 1'b1) begin
+	 if (index == LCD_SIZE) begin
 	    x <= '0;
 	    y <= '0;
 	    index <= '0;

@@ -9,3 +9,8 @@ create_generated_clock -name mpeg_clk_6MHz_out \
     [get_ports mpeg_clk_6MHz_out]
 
 set_false_path -from [get_ports rst_n]
+
+# create_generated_clock -name lcd_sck_out \
+#     -source [get_pins {pll0|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] \
+#     [get_nets {lcd0|spi|o_sck}] 
+    

@@ -1,7 +1,9 @@
 `default_nettype none
 module msp2807_controller 
   #(
+    /* verilator lint_off UNUSEDPARAM */
     parameter PLACEHOLDER = 1
+    /* verilator lint_on UNUSEDPARAM */
     )
    (
     input wire	       rst_n,
