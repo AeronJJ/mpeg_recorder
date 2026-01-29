@@ -27,3 +27,7 @@ src/mpeg_recorder/hdl/mpeg_controller.sv
 
 src/msp2807_controller/hdl/msp2807_coord_gen.sv
 src/msp2807_controller/hdl/msp2807_spi.sv
+src/msp2807_touch_controller/hdl/msp2807_touch_spi.sv
+
+pll/pll_sim.f
+pll/pll_sim/
