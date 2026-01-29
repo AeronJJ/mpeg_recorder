@@ -24,18 +24,26 @@ module mpeg_top_level
     output wire				lcd_dcrs_out,
     output wire				lcd_sdi_out,
     output wire				lcd_sck_out,
-    output wire				lcd_lcdrst_out
+    output wire				lcd_lcdrst_out,
+
+    input wire				touch_sdo_in,
+    input wire				touch_irq_in,
+    output wire				touch_cs_out,
+    output wire				touch_sdi_out,
+    output wire				touch_sck_out
     );
 
    // PLL //
    wire sys_clk_100MHz;
+   wire	sys_clk_1MHz;
    wire	pll_locked;
    pll pll0 
      (
       .refclk(ref_clk_50MHz),   //  refclk.clk
       .rst(~rst_n),	     //   reset.reset
       .outclk_0(sys_clk_100MHz), // outclk0.clk
-      .locked(pll_locked)
+      .outclk_1(sys_clk_1MHz), // outclk1.clk
+      .locked(pll_locked) // locked.export
       );
    // //
    
@@ -98,12 +106,18 @@ module mpeg_top_level
      (
       .rst_n(rst_n),
       .sys_clk_100MHz(sys_clk_100MHz),
+      .sys_clk_1MHz(sys_clk_1MHz),
       .mode(),
       .lcd_cs_out(lcd_cs_out),
       .lcd_dcrs_out(lcd_dcrs_out),
       .lcd_sdi_out(lcd_sdi_out),
       .lcd_sck_out(lcd_sck_out),
-      .lcd_lcdrst_out(lcd_lcdrst_out)
+      .lcd_lcdrst_out(lcd_lcdrst_out),
+      .touch_sdo_in(touch_sdo_in),
+      .touch_irq_in(touch_irq_in),
+      .touch_cs_out(touch_cs_out),
+      .touch_sdi_out(touch_sdi_out),
+      .touch_sck_out(touch_sck_out)
       );
    // //
    
