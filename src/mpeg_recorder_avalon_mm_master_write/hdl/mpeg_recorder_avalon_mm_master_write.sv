@@ -3,49 +3,67 @@ module mpeg_recorder_avalon_mm_master_write
   #(
     parameter DATA_WIDTH = 32,
     parameter ADDR_WIDTH = 30
-    )
-   (
-    input wire                     clk,
-    input wire                     rst_n,
+    )(
+      input wire                  clk,
+      input wire                  rst_n,
 
-    output wire [ADDR_WIDTH - 1:0] address,
-    output wire [3:0]              burstcount,
-    output wire [DATA_WIDTH - 1:0] writedata,
-    output wire [3:0]              byteenable,
-    output wire                    write,
+      output reg [ADDR_WIDTH-1:0] address,
+      output wire [3:0]           burstcount,
+      output reg [DATA_WIDTH-1:0] writedata,
+      output wire [3:0]           byteenable,
+      output reg                  write,
 
-    input wire                     waitrequest
-    );
+      input wire                  waitrequest
+      );
 
-  assign address = address_internal;
-  assign burstcount = 4'b0001;
-  assign writedata = writedata_internal;
+  assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
-  assign write = write_internal;
-  
-  reg [ADDR_WIDTH - 1:0] address_internal;
-  reg [DATA_WIDTH - 1:0] writedata_internal;
-  reg                    write_internal;
-  reg [31:0]             counter;
 
-  always_ff @ (posedge clk or negedge rst_n) begin
+  typedef enum logic 
+    {
+     IDLE,
+     WRITE
+     } state_t;
+
+  state_t state;
+  reg [31:0] counter;
+
+  always_ff @(posedge clk or negedge rst_n) begin
     if (~rst_n) begin
-      address_internal <= '0;
-      counter <= 32'd0;
-      writedata_internal <= '0;
-      write_internal <= 1'b0;
-    end
-    else if (~waitrequest) begin
-      write_internal <= 1'b1;
-      writedata_internal <= counter;
-      address_internal <= address_internal + 1;
-      counter <= counter + 1;
-    end
+      state      <= IDLE;
+      address    <= 32'h34000000;
+      writedata  <= '0;
+      counter    <= 32'd0;
+      write      <= 1'b0;
+    end 
     else begin
-      write_internal <= 1'b0;
+      case (state)
+        IDLE: begin
+          // prepare next write
+          writedata <= counter;
+          //write     <= 1'b1;
+          write     <= 1'b0;
+          state     <= WRITE;
+        end
+
+        WRITE: begin
+          if (~waitrequest) begin
+            // transfer accepted
+            write     <= 1'b0;
+            if (address == 32'h3a399999) begin
+              address <= 32'h34000000;
+            end
+            else begin
+              address <= address + 1'b1;
+            end
+            counter   <= counter + 1'b1;
+            state     <= IDLE;
+          end
+          // else: hold address/writedata/write stable
+        end
+      endcase
     end
   end
 
-endmodule // mpeg_recorder_avalon_mm_master_write
+endmodule
 `default_nettype wire
-  

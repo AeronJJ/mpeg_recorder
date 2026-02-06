@@ -9,22 +9,22 @@ module mpeg_recorder
     parameter MPEG_PACKET_LENGTH = MPEG_PACKET_LENGTH_BYTES/MPEG_MEM_WIDTH
     )
    (
-    input wire				rst_n,
+    input wire                          rst_n,
 
-    input wire				mpeg_clk_6MHz,
-    input wire [MPEG_DATA_WIDTH - 1:0]	mpeg_data_8,
-    input wire				mpeg_sync,
-    input wire				mpeg_valid,
+    input wire                          mpeg_clk_6MHz,
+    input wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8,
+    input wire                          mpeg_sync,
+    input wire                          mpeg_valid,
 
-    input wire				sys_clk_40MHz,
+    input wire                          sys_clk_40MHz,
 
-    input wire				start,
-    input wire				stop,
+    input wire                          start,
+    input wire                          stop,
 
-    output wire				mpeg_clk_6MHz_out,
+    output wire                         mpeg_clk_6MHz_out,
     output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
-    output wire				mpeg_sync_out,
-    output reg				mpeg_valid_out
+    output wire                         mpeg_sync_out,
+    output reg                          mpeg_valid_out
     );
 
    assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
