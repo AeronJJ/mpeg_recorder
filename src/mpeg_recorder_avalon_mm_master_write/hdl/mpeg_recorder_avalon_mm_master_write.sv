@@ -5,7 +5,7 @@ module mpeg_recorder_avalon_mm_master_write
     parameter ADDR_WIDTH = 30
     )(
       input wire                  clk,
-      input wire                  rst_n,
+      input wire                  rst, // Active high reset
 
       output reg [ADDR_WIDTH-1:0] address,
       output wire [3:0]           burstcount,
@@ -13,7 +13,8 @@ module mpeg_recorder_avalon_mm_master_write
       output wire [3:0]           byteenable,
       output reg                  write,
 
-      input wire                  waitrequest
+      input wire                  waitrequest,
+      input wire                  en
       );
 
   assign burstcount = 4'd1;
@@ -28,8 +29,8 @@ module mpeg_recorder_avalon_mm_master_write
   state_t state;
   reg [31:0] counter;
 
-  always_ff @(posedge clk or negedge rst_n) begin
-    if (~rst_n) begin
+  always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
       state      <= IDLE;
       address    <= 32'h34000000;
       writedata  <= '0;
@@ -39,11 +40,13 @@ module mpeg_recorder_avalon_mm_master_write
     else begin
       case (state)
         IDLE: begin
-          // prepare next write
-          writedata <= counter;
-          //write     <= 1'b1;
-          write     <= 1'b0;
-          state     <= WRITE;
+          if (en) begin
+            // prepare next write
+            writedata <= counter;
+            write     <= 1'b1;
+            // write     <= 1'b0;
+            state     <= WRITE;
+          end
         end
 
         WRITE: begin
@@ -52,6 +55,7 @@ module mpeg_recorder_avalon_mm_master_write
             write     <= 1'b0;
             if (address == 32'h3a399999) begin
               address <= 32'h34000000;
+              counter <= '0;
             end
             else begin
               address <= address + 1'b1;

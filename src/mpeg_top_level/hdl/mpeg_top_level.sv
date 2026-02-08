@@ -138,12 +138,13 @@ module mpeg_top_level
   // //
 
   // LCD //
+  wire [3:0] mode;
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
      .sys_clk_100MHz(sys_clk_100MHz),
      .sys_clk_1MHz(sys_clk_1MHz),
-     .mode(),
+     .mode(mode),
      .lcd_cs_out(lcd_cs_out),
      .lcd_dcrs_out(lcd_dcrs_out),
      .lcd_sdi_out(lcd_sdi_out),
@@ -184,7 +185,8 @@ module mpeg_top_level
      .memory_oct_rzqin   ( HPS_DDR3_RZQ),     //               .oct_rzqin
      .reset_reset_n      ( rst_n_gated),      //          reset.reset_n
      .hps_0_f2h_irq1_irq ( hps_irq0),         // hps_0_f2h_irq1.irq
-     .hps_0_f2h_irq0_irq ( hps_irq1)          // hps_0_f2h_irq0.irq
+     .hps_0_f2h_irq0_irq ( hps_irq1),         // hps_0_f2h_irq0.irq
+     .mpeg_recorder_avalon_mm_write_en_en( mode[2])
      );
   
 endmodule // mpeg_top_level
