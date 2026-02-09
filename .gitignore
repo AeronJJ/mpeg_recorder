@@ -11,8 +11,14 @@
 *.qws
 *.dat
 *.pvs
+*.sopcinfo
 
 obj_dir/
+
+src/*/sim/
+unsaved/
+hps_isw_handoff/
+hps/hps/
 
 .qsys_edit/
 db/
