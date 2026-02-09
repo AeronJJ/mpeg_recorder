@@ -42,7 +42,8 @@ module mpeg_recorder_avalon_mm_master_write
         IDLE: begin
           if (en) begin
             // prepare next write
-            writedata <= counter;
+            writedata <= 32'h9af0;
+//counter;
             write     <= 1'b1;
             // write     <= 1'b0;
             state     <= WRITE;
