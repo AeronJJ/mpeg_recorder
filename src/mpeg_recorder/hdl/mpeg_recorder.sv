@@ -1,16 +1,16 @@
 `default_nettype none
 module mpeg_recorder 
   #(
-    parameter MPEG_DATA_WIDTH = 8,
-    parameter MPEG_MEM_WIDTH = 4, // Bytes
-    parameter MPEG_MEM_LENGTH = MPEG_DATA_WIDTH * MPEG_MEM_WIDTH,
-    parameter MPEG_ADDR_WIDTH = 6,
-    parameter MPEG_PACKET_LENGTH_BYTES = 188,
-    parameter MPEG_PACKET_LENGTH = MPEG_PACKET_LENGTH_BYTES/MPEG_MEM_WIDTH
+     parameter MPEG_DATA_WIDTH = 8,
+     parameter MPEG_MEM_WIDTH = 4, // Bytes
+     parameter MPEG_MEM_LENGTH = MPEG_DATA_WIDTH * MPEG_MEM_WIDTH,
+     parameter MPEG_ADDR_WIDTH = 6,
+     parameter MPEG_PACKET_LENGTH_BYTES = 188,
+     parameter MPEG_PACKET_LENGTH = MPEG_PACKET_LENGTH_BYTES/MPEG_MEM_WIDTH
     )
   (
     input wire                          rst_n,
-   
+  
     input wire                          mpeg_clk_6MHz,
     input wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8,
     input wire                          mpeg_sync,
@@ -24,7 +24,10 @@ module mpeg_recorder
     output wire                         mpeg_clk_6MHz_out,
     output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
     output wire                         mpeg_sync_out,
-    output reg                          mpeg_valid_out
+    output reg                          mpeg_valid_out,
+
+    output wire [MPEG_MEM_LENGTH - 1:0] w_data_32,
+    output wire                         w_en                              
    );
 
   assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
@@ -33,6 +36,9 @@ module mpeg_recorder
   // Buffer 4 bytes of input mpeg data //
   wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
   wire                         word_w_en;
+
+  assign w_data_32 = mpeg_data_32_packed;
+  assign w_en = word_w_en;
   
   byte_packer 
     #(.NUM_WRITE_BITS(MPEG_DATA_WIDTH), .NUM_WRITES(MPEG_MEM_WIDTH)) 
