@@ -9,25 +9,28 @@ module mpeg_recorder
      parameter MPEG_PACKET_LENGTH = MPEG_PACKET_LENGTH_BYTES/MPEG_MEM_WIDTH
     )
   (
-    input wire                          rst_n,
+   input wire                          rst_n,
   
-    input wire                          mpeg_clk_6MHz,
-    input wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8,
-    input wire                          mpeg_sync,
-    input wire                          mpeg_valid,
+   input wire                          mpeg_clk_6MHz,
+   input wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8,
+   input wire                          mpeg_sync,
+   input wire                          mpeg_valid,
 
-    input wire                          sys_clk_40MHz,
+   input wire                          sys_clk,
 
-    input wire                          start,
-    input wire                          stop,
+   input wire                          start,
+   input wire                          stop,
 
-    output wire                         mpeg_clk_6MHz_out,
-    output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
-    output wire                         mpeg_sync_out,
-    output reg                          mpeg_valid_out,
+   output wire                         mpeg_clk_6MHz_out,
+   output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
+   output wire                         mpeg_sync_out,
+   output reg                          mpeg_valid_out,
 
-    output wire [MPEG_MEM_LENGTH - 1:0] w_data_32,
-    output wire                         w_en                              
+    // output wire [MPEG_MEM_LENGTH - 1:0] w_data_32,
+    // output wire                         w_en
+   output wire [MPEG_MEM_LENGTH - 1:0] r_data_32,
+   input wire [MPEG_ADDR_WIDTH - 1:0]  r_addr,
+   input wire                          r_en
    );
 
   assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
@@ -37,8 +40,8 @@ module mpeg_recorder
   wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
   wire                         word_w_en;
 
-  assign w_data_32 = mpeg_data_32_packed;
-  assign w_en = word_w_en;
+  // assign w_data_32 = mpeg_data_32_packed;
+  // assign w_en = word_w_en;
   
   byte_packer 
     #(.NUM_WRITE_BITS(MPEG_DATA_WIDTH), .NUM_WRITES(MPEG_MEM_WIDTH)) 
@@ -80,8 +83,23 @@ module mpeg_recorder
   end
   
   reg	w_en_mem0;
-  wire  r_en_mem0;
-  assign r_en_mem0 = ~w_en_mem0;
+  reg   r_en_mem0;
+  reg   r_en_mem0_r;
+  // assign r_en_mem0 = ~w_en_mem0;
+
+  // Sync r_en into sys_clk //
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
+    if (~rst_n) begin
+      r_en_mem0_r <= 1'b0;
+      r_en_mem0 <= 1'b0;
+    end
+    else begin
+      r_en_mem0_r <= ~w_en_mem0;
+      r_en_mem0 <= r_en_mem0;
+    end
+  end
+
+  // //
   
   reg [MPEG_ADDR_WIDTH - 1:0] w_addr;
   reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr_tmp;
@@ -125,13 +143,13 @@ module mpeg_recorder
   // //
 
   // Create packet buffers //
-  wire [MPEG_MEM_LENGTH - 1:0] r_data;
+  // wire [MPEG_MEM_LENGTH - 1:0] r_data;
   wire [MPEG_MEM_LENGTH - 1:0] r_data_mem0;
   wire [MPEG_MEM_LENGTH - 1:0] r_data_mem1;
 
   reg                          r_data_switch;
   
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge sys_clk or negedge rst_n) begin //
     if (~rst_n) begin
       r_data_switch <= 1'b0;
     end
@@ -139,23 +157,25 @@ module mpeg_recorder
       r_data_switch <= r_en_mem0;
     end
   end
-  assign r_data = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
+  assign r_data_32 = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
   
   packet_buffer #(.ADDR_WIDTH(MPEG_ADDR_WIDTH), .MEM_WIDTH(MPEG_MEM_LENGTH)) mpeg_packet_buffer_mem0
     (
      .rst_n(rst_n),
      
      .w_clk(mpeg_clk_6MHz),
-     // .w_clk(clk_1M5Hz),
      .w_en(w_en_mem0 & word_w_en),
      .w_addr(w_addr),
      .w_data(mpeg_data_32_packed),
      
-     // .r_clk(sys_clk_40MHz),
-     .r_clk(mpeg_clk_6MHz),
-     // .r_clk(clk_1M5Hz),
-     .r_en(r_en_mem0 & word_r_en),
-     .r_addr(mpeg_controller_addr[7:2]), // TODO: Parameterise
+     // .r_clk(mpeg_clk_6MHz),
+     // .r_en(r_en_mem0 & word_r_en),
+     // .r_addr(mpeg_controller_addr[7:2]), // TODO: Parameterise
+     // .r_data(r_data_mem0)
+     
+     .r_clk(sys_clk),
+     .r_en(r_en_mem0 & r_en),
+     .r_addr(r_addr),
      .r_data(r_data_mem0)
      );
   
@@ -164,16 +184,18 @@ module mpeg_recorder
      .rst_n(rst_n),
      
      .w_clk(mpeg_clk_6MHz),
-     // .w_clk(clk_1M5Hz),
      .w_en(~w_en_mem0 & word_w_en),
      .w_addr(w_addr),
      .w_data(mpeg_data_32_packed),
      
-     // .r_clk(sys_clk_40MHz),
-     .r_clk(mpeg_clk_6MHz),
-     // .r_clk(clk_1M5Hz),
-     .r_en(~r_en_mem0 & word_r_en),
-     .r_addr(mpeg_controller_addr[7:2]),
+     // .r_clk(mpeg_clk_6MHz),
+     // .r_en(~r_en_mem0 & word_r_en),
+     // .r_addr(mpeg_controller_addr[7:2]),
+     // .r_data(r_data_mem1)   
+
+     .r_clk(sys_clk),
+     .r_en(~r_en_mem0 & r_en),
+     .r_addr(r_addr),
      .r_data(r_data_mem1)
      );
   // //
@@ -181,47 +203,52 @@ module mpeg_recorder
   // Byte unpacker and controller//
 
   // Unpack data //
-  byte_unpacker
-    #(.NUM_READ_BITS(), .NUM_READS())
-  mpeg_byte_unpacker
-    (
-     .rst_n(rst_n),
-     .w_data(r_data),
-     .r_clk(mpeg_clk_6MHz),
-     .r_addr(mpeg_controller_addr_d[1:0]),
-     .r_data(mpeg_data_8_out),
-     .en(byte_unpacker_en)
-     );
+  // byte_unpacker
+  //   #(.NUM_READ_BITS(), .NUM_READS())
+  // mpeg_byte_unpacker
+  //   (
+  //    .rst_n(rst_n),
+  //    .w_data(r_data),
+  //    .r_clk(mpeg_clk_6MHz),
+  //    .r_addr(mpeg_controller_addr_d[1:0]),
+  //    .r_data(mpeg_data_8_out),
+  //    .en(byte_unpacker_en)
+  //    );
 
-  wire						 byte_unpacker_en;
+  // wire						 byte_unpacker_en;
   
-  wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]  mpeg_controller_addr;
-  reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]   mpeg_controller_addr_d;
+  // wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]  mpeg_controller_addr;
+  // reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]   mpeg_controller_addr_d;
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
-    if (~rst_n) begin
-      mpeg_controller_addr_d <= '0;
-    end
-    else begin
-      mpeg_controller_addr_d <= mpeg_controller_addr;
-    end
-  end
+  // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  //   if (~rst_n) begin
+  //     mpeg_controller_addr_d <= '0;
+  //   end
+  //   else begin
+  //     mpeg_controller_addr_d <= mpeg_controller_addr;
+  //   end
+  // end
 
-  wire word_r_en;
+  // wire word_r_en;
   
-  mpeg_controller
-    #(.PACKET_LENGTH(MPEG_PACKET_LENGTH_BYTES))
-  mpeg_controller_0
-    (
-     .rst_n(rst_n),
-     .mpeg_clk_6MHz(mpeg_clk_6MHz),
-     .packet_done_pulse(running & packet_done_pulse),
-     .r_en(byte_unpacker_en),
-     .r_addr(mpeg_controller_addr),
-     .mpeg_sync_out(mpeg_sync_out),
-     .mpeg_valid_out(mpeg_valid_out),
-     .word_r_en(word_r_en)
-     );
+  // mpeg_controller
+  //   #(.PACKET_LENGTH(MPEG_PACKET_LENGTH_BYTES))
+  // mpeg_controller_0
+  //   (
+  //    .rst_n(rst_n),
+  //    .mpeg_clk_6MHz(mpeg_clk_6MHz),
+  //    .packet_done_pulse(running & packet_done_pulse),
+  //    .r_en(byte_unpacker_en),
+  //    .r_addr(mpeg_controller_addr),
+  //    .mpeg_sync_out(mpeg_sync_out),
+  //    .mpeg_valid_out(mpeg_valid_out),
+  //    .word_r_en(word_r_en)
+  //    );
+
+  assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+  assign mpeg_data_8_out = mpeg_data_8;
+  assign mpeg_sync_out = mpeg_sync;
+  assign mpeg_valid_out = mpeg_valid;
   
   // //
   

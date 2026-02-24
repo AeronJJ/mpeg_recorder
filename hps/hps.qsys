@@ -33,6 +33,14 @@
          type = "String";
       }
    }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element hps_0
    {
       datum _sortIndex
@@ -104,10 +112,13 @@
    dir="end" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <interface
-   name="mpeg_recorder_avalon_mm_master_write_0_w_interface"
-   internal="mpeg_recorder_avalon_mm_master_write_0.w_interface"
+   name="mpeg_recorder_avalon_mm_master_write_0_r_interface"
+   internal="mpeg_recorder_avalon_mm_master_write_0.r_interface"
    type="conduit"
    dir="end" />
+ <interface
+   name="mpeg_recorder_avalon_mm_master_write_0_w_interface"
+   internal="mpeg_recorder_avalon_mm_master_write_0.w_interface" />
  <interface
    name="mpeg_recorder_avalon_mm_write_en"
    internal="mpeg_recorder_avalon_mm_master_write_0.en"

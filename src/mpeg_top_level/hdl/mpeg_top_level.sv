@@ -113,9 +113,11 @@ module mpeg_top_level
   // //
 
   // mpeg recorder //
-  wire [31:0] w_data_32;
-  wire        w_en;
-  mpeg_recorder
+  wire [31:0] r_data_32;
+  wire [5:0]  r_addr;
+  wire        r_en;
+  
+mpeg_recorder
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
       )
@@ -126,15 +128,16 @@ module mpeg_top_level
      .mpeg_data_8(mpeg_data_8),
      .mpeg_sync(mpeg_sync),
      .mpeg_valid(mpeg_valid),
-     .sys_clk_40MHz(),
+     .sys_clk(sys_clk_100MHz),
      .start(~start_sync),
      .stop(~stop_sync),
      .mpeg_clk_6MHz_out(mpeg_clk_6MHz_out),
      .mpeg_data_8_out(mpeg_data_8_out),
      .mpeg_sync_out(mpeg_sync_out),
      .mpeg_valid_out(mpeg_valid_out),
-     .w_data_32(w_data_32),
-     .w_en(w_en)
+     .r_data_32(r_data_32),
+     .r_addr(r_addr),
+     .r_en(r_en)
      );
   // //
 
@@ -188,8 +191,9 @@ module mpeg_top_level
      .hps_0_f2h_irq1_irq ( hps_irq0),         // hps_0_f2h_irq1.irq
      .hps_0_f2h_irq0_irq ( hps_irq1),         // hps_0_f2h_irq0.irq
      .mpeg_recorder_avalon_mm_write_en_en                       ( mode[2]),
-     .mpeg_recorder_avalon_mm_master_write_0_w_interface_w_en   ( w_en),
-     .mpeg_recorder_avalon_mm_master_write_0_w_interface_w_data ( w_data_32)
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_data ( r_data_32),
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_addr ( r_addr),
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en   ( r_en)
      );
   
 endmodule // mpeg_top_level
