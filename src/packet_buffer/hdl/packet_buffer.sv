@@ -5,46 +5,32 @@ module packet_buffer
     parameter MEM_WIDTH = 32,
     parameter PACKET_LENGTH = 188/4
     )
-   (
-    input wire			  rst_n,
-    
-    input wire			  w_clk,
-    input wire			  w_en,
-    input wire [ADDR_WIDTH - 1:0] w_addr,
-    input wire [MEM_WIDTH - 1:0]  w_data,
+  (
+   input wire                    rst_n,
+   
+   input wire                    w_clk,
+   input wire                    w_en,
+   input wire [ADDR_WIDTH - 1:0] w_addr,
+   input wire [MEM_WIDTH - 1:0]  w_data,
 
-    input wire			  r_clk,
-    input wire			  r_en,
-    input wire [ADDR_WIDTH - 1:0] r_addr,
-    output reg [MEM_WIDTH - 1:0]  r_data
-    );
+   input wire                    r_clk,
+   input wire                    r_en,
+   input wire [ADDR_WIDTH - 1:0] r_addr,
+   output wire [MEM_WIDTH - 1:0] r_data
+   );
 
-   reg [MEM_WIDTH - 1:0] buffer [PACKET_LENGTH - 1:0];
-
-   always_ff @ (negedge w_clk or negedge rst_n) begin //
-      if (~rst_n) begin
-	 // Eh
-      end
-      else if (w_en) begin
-	 // if (w_addr == '0) begin
-	 //    $display("Write Address = 0, Write Data = 0x%h", w_data);
-	 // end
-	 buffer[w_addr] <= w_data;
-      end
-   end
-
-   always_ff @ (posedge r_clk or negedge rst_n) begin //
-      if (~rst_n) begin
-	 r_data <= '0;
-      end
-      else if (r_en) begin
-	 r_data <= buffer[r_addr];
-	 // if (r_addr == '0) begin
-	 //    $display("Read Address = 0, Read Data = 0x%h", buffer[r_addr]);
-	 // end
-      end
-   end
-
+  ram_2_port_packet_buffer ram_2_port_packet_buffer_inst 
+    (
+     .data      (w_data),
+     .rdaddress (r_addr),
+     .rdclock   (r_clk),
+     .rden      (r_en),
+     .wraddress (w_addr),
+     .wrclock   (w_clk),
+     .wren      (w_en),
+     .q         (r_data)
+     );
+  
 endmodule // packet_buffer
 `default_nettype wire
   
