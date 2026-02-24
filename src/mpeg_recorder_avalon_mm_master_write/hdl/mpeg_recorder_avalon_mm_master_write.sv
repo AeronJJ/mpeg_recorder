@@ -2,7 +2,7 @@
 module mpeg_recorder_avalon_mm_master_write 
   #(
     parameter DATA_WIDTH = 32,
-    parameter ADDR_WIDTH = 30
+    parameter ADDR_WIDTH = 32
     )
   (
    input wire                   clk,
@@ -16,73 +16,149 @@ module mpeg_recorder_avalon_mm_master_write
 
    input wire                   waitrequest,
    input wire                   en,
-   input wire [DATA_WIDTH-1:0]  w_data,
-   input wire                   w_en
+   input wire                   packet_done,
+   input wire [DATA_WIDTH-1:0]  r_data,
+   output wire [5:0]            r_addr,
+   output reg                   r_en
    );
 
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
-  reg [DATA_WIDTH-1:0] writedata_internal;
-  assign writedata = { writedata_internal[7:0], 
-                       writedata_internal[15:8], 
-                       writedata_internal[23:16], 
-                       writedata_internal[31:24] 
+  assign writedata = { r_data[7:0], 
+                       r_data[15:8], 
+                       r_data[23:16], 
+                       r_data[31:24] 
                        };
+
+  // Control write signal //
+  reg writeready;
+  always @ (posedge clk or posedge rst) begin
+    if (rst) begin
+      write <= 1'b0;
+    end
+    else if (~waitrequest && write) begin
+      write <= 1'b0;
+    end
+    else if (writeready) begin
+      write <= 1'b1;
+    end
+  end // always @ (posedge clk or posedge rst)
+  // //
+
+  // Synchronise packet_done into clk domain //
+  reg packet_done_sync;
+  reg packet_done_sync_r;
+  always_ff @ (posedge clk or posedge rst) begin
+    if (rst) begin
+      packet_done_sync <= 1'b0;
+      packet_done_sync_r <= 1'b0;      
+    end
+    else begin
+      packet_done_sync_r <= packet_done;
+      packet_done_sync <= packet_done_sync_r;
+    end
+  end
+  // //
+
+  // State Machine //
+  reg [5:0] r_addr_r;
+  assign r_addr = r_addr_r;
   
   typedef enum
     {
-     IDLE,
-     WRITE,
-     WAIT
+     s_IDLE,
+     s_READ,
+     s_WRITE,
+     s_WAIT
      } state_t;
 
-  state_t state;
-
-  always_ff @(posedge clk or posedge rst) begin
+  state_t current_state;
+  state_t next_state;
+  
+  always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
-      state <= IDLE;
+      r_en <= 1'b0;
+      r_addr_r <= '0;
       address <= 32'h34000000;
-      writedata_internal <= '0;
-      write <= 1'b0;
-    end 
-    else begin
-      case (state)
-        IDLE: begin
-          if (en & w_en) begin
-            // prepare next write
-            writedata_internal <= w_data;
-            write <= 1'b1;
-            state <= WRITE;
-          end // if (en & w_en)
-          else if (~en) begin
+      writeready <= 1'b0;
+    end
+    else if (en) begin
+      current_state <= next_state;
+      case (current_state)
+        s_IDLE: begin
+          r_en <= 1'b0;
+          r_addr_r <= '0;
+          writeready <= 1'b0;
+        end
+        
+        s_READ: begin
+          r_en <= 1'b1;
+          writeready <= 1'b0;
+        end
+        
+        s_WRITE: begin
+          r_en <= 1'b0;
+          r_addr_r <= r_addr_r + 1'b1;
+          writeready <= 1'b1;
+          if (address >= 32'h3a400000) begin
             address <= 32'h34000000;
           end
-        end
-
-        WRITE: begin
-          if (~waitrequest) begin
-            // previous transfer accepted
-            write <= 1'b0;
-            state <= WAIT;
-            
-            if (address >= 32'h3a400000) begin
-              address <= 32'h34000000;
-            end
-            else begin
-              address <= address + 4; // Increment by 4 bytes
-            end
-          end
-          // else: hold address/writedata/write stable
-        end
-
-        WAIT: begin // Bad workaround, synchronise w_en into sys_clk, then this won't be needed
-          if (~w_en) begin // Wait till w_en goes low
-            state <= IDLE;
+          else begin
+            address <= address + 32'd4; // Increment by 4 bytes
           end
         end
-      endcase
+        
+        s_WAIT: begin
+          writeready <= 1'b0;
+        end
+
+        default: begin
+
+        end
+      endcase // case (current_state)
+    end // if (en)
+    else begin
+      r_en <= 1'b0;
+      r_addr_r <= '0;
+      writeready <= 1'b0;
+      address <= 32'h34000000;
     end
-  end
+  end // always_ff @ (posedge clk or posedge rst)
+
+  always_comb begin
+    next_state = current_state;
+    case (current_state)
+      s_IDLE: begin
+        if (packet_done_sync) begin
+          next_state = s_READ;
+        end
+      end
+      
+      s_READ: begin
+        next_state = s_WRITE;
+      end
+      
+      s_WRITE: begin
+        next_state = s_WAIT;
+      end
+
+      s_WAIT: begin
+        if (~waitrequest && ~writeready) begin
+          if (r_addr_r == 6'd46) begin
+            next_state = s_IDLE;
+          end
+          else begin
+            next_state = s_READ;
+          end
+        end
+      end
+
+      default: begin
+
+      end
+    endcase // case (current_state)
+  end // always_comb
+  // //
 
 endmodule
 `default_nettype wire
