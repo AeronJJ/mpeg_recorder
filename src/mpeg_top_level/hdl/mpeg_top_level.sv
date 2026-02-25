@@ -116,8 +116,9 @@ module mpeg_top_level
   wire [31:0] r_data_32;
   wire [5:0]  r_addr;
   wire        r_en;
+  wire        packet_done;
   
-mpeg_recorder
+  mpeg_recorder
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
       )
@@ -137,7 +138,8 @@ mpeg_recorder
      .mpeg_valid_out(mpeg_valid_out),
      .r_data_32(r_data_32),
      .r_addr(r_addr),
-     .r_en(r_en)
+     .r_en(r_en),
+     .packet_done_out(packet_done)
      );
   // //
 
@@ -191,6 +193,7 @@ mpeg_recorder
      .hps_0_f2h_irq1_irq ( hps_irq0),         // hps_0_f2h_irq1.irq
      .hps_0_f2h_irq0_irq ( hps_irq1),         // hps_0_f2h_irq0.irq
      .mpeg_recorder_avalon_mm_write_en_en                       ( mode[2]),
+     .mpeg_recorder_avalon_mm_write_en_packet_done              ( packet_done),
      .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_data ( r_data_32),
      .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_addr ( r_addr),
      .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en   ( r_en)

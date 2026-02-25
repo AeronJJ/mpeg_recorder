@@ -30,12 +30,13 @@ module mpeg_recorder
     // output wire                         w_en
    output wire [MPEG_MEM_LENGTH - 1:0] r_data_32,
    input wire [MPEG_ADDR_WIDTH - 1:0]  r_addr,
-   input wire                          r_en
+   input wire                          r_en,
+   output wire                         packet_done_out
    );
 
-  assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+  // assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+  assign packet_done_out = packet_done;
   
-
   // Buffer 4 bytes of input mpeg data //
   wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
   wire                         word_w_en;
@@ -95,7 +96,7 @@ module mpeg_recorder
     end
     else begin
       r_en_mem0_r <= ~w_en_mem0;
-      r_en_mem0 <= r_en_mem0;
+      r_en_mem0 <= r_en_mem0_r;
     end
   end
 
@@ -245,7 +246,7 @@ module mpeg_recorder
   //    .word_r_en(word_r_en)
   //    );
 
-  assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+  assign mpeg_clk_6MHz_out = running ? mpeg_clk_6MHz : 1'b0;
   assign mpeg_data_8_out = mpeg_data_8;
   assign mpeg_sync_out = mpeg_sync;
   assign mpeg_valid_out = mpeg_valid;

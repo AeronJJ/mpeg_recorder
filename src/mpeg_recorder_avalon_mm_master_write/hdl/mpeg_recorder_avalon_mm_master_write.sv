@@ -28,7 +28,7 @@ module mpeg_recorder_avalon_mm_master_write
                        r_data[15:8], 
                        r_data[23:16], 
                        r_data[31:24] 
-                       };
+                       };  
 
   // Control write signal //
   reg writeready;
@@ -79,7 +79,7 @@ module mpeg_recorder_avalon_mm_master_write
     if (rst) begin
       r_en <= 1'b0;
       r_addr_r <= '0;
-      address <= 32'h34000000;
+      address <= 32'h34000000 - 32'd4;
       writeready <= 1'b0;
     end
     else if (en) begin
@@ -101,7 +101,7 @@ module mpeg_recorder_avalon_mm_master_write
           r_addr_r <= r_addr_r + 1'b1;
           writeready <= 1'b1;
           if (address >= 32'h3a400000) begin
-            address <= 32'h34000000;
+            address <= 32'h34000000 - 32'd4;
           end
           else begin
             address <= address + 32'd4; // Increment by 4 bytes
