@@ -154,7 +154,7 @@ module mpeg_recorder
     if (~rst_n) begin
       r_data_switch <= 1'b0;
     end
-    else if (running) begin
+    else if (running_sys) begin
       r_data_switch <= r_en_mem0;
     end
   end
@@ -279,7 +279,23 @@ module mpeg_recorder
     else if (stop) begin
       en_running <= 1'b0;
     end
+  end // always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n)
+  // //
+
+  // Sync running into sys clk //
+  reg running_sys_sync;
+  reg running_sys;
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
+    if (~rst_n) begin
+      running_sys_sync <= 1'b0;
+      running_sys <= 1'b0;
+    end
+    else begin
+      running_sys_sync <= running;
+      running_sys <= running_sys_sync;
+    end
   end
+  // // 
   
 endmodule // mpeg_recorder
 `default_nettype wire

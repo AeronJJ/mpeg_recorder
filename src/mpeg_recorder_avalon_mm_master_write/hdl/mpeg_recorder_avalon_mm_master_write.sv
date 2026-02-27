@@ -121,7 +121,7 @@ module mpeg_recorder_avalon_mm_master_write
       r_en <= 1'b0;
       r_addr_r <= '0;
       writeready <= 1'b0;
-      address <= 32'h34000000;
+      address <= 32'h34000000 - 32'd4;
     end
   end // always_ff @ (posedge clk or posedge rst)
 
@@ -144,7 +144,7 @@ module mpeg_recorder_avalon_mm_master_write
 
       s_WAIT: begin
         if (~waitrequest && ~writeready) begin
-          if (r_addr_r == 6'd46) begin
+          if (r_addr_r == 6'd47) begin
             next_state = s_IDLE;
           end
           else begin
