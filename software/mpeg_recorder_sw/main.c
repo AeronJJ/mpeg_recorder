@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/mman.h>
 
 #define BUF_SIZE 0x06400000
 
@@ -22,16 +23,6 @@ int dump_to_usb(const char* buffer, const char* filename);
 
 static void sigint_handler(int sig) {
   running = 0;
-}
-
-static int usb_has_space(size_t required_bytes) {
-  struct statvfs s;
-  if (statvfs(usb_loc, &s) != 0) {
-    perror("statvfs");
-    return 0; // assume no space if we can't check
-  }
-  unsigned long long free_bytes = (unsigned long long)s.f_bavail * s.f_frsize;
-  return free_bytes >= required_bytes;
 }
     
 int main(void) {
@@ -54,11 +45,6 @@ int main(void) {
     if (n < 0) {
       if (errno == EINTR) continue;
       perror("Error reading /dev/mpeg_buf_dump");
-      break;
-    }
-
-    if (!usb_has_space(BUF_SIZE)) { // Might be redundant
-      perror("Error - not enough free space on USB");
       break;
     }
     
