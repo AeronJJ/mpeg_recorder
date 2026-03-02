@@ -117,8 +117,6 @@ module mpeg_top_level
   wire [5:0]  r_addr;
   wire        r_en;
   wire        packet_done;
-  wire        buffer0_done_irq;
-  wire        buffer1_done_irq;
     
   mpeg_recorder
     #(
@@ -166,10 +164,7 @@ module mpeg_top_level
      );
   // //
 
-  wire [31:0] hps_irq0;
   wire [31:0] hps_irq1;
-  assign hps_irq0[3] = buffer0_done_irq;
-  assign hps_irq0[4] = buffer1_done_irq;
     
   wire [7:0]  lw_dout;
       
@@ -194,15 +189,12 @@ module mpeg_top_level
      .memory_mem_dm      ( HPS_DDR3_DM),      //               .mem_dm
      .memory_oct_rzqin   ( HPS_DDR3_RZQ),     //               .oct_rzqin
      .reset_reset_n      ( rst_n_gated),      //          reset.reset_n
-     .hps_0_f2h_irq1_irq ( hps_irq0),         // hps_0_f2h_irq1.irq
-     .hps_0_f2h_irq0_irq ( hps_irq1),         // hps_0_f2h_irq0.irq
-     .mpeg_recorder_avalon_mm_write_en_en                         ( mode[2]),
-     .mpeg_recorder_avalon_mm_write_en_packet_done                ( packet_done),
-     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_data   ( r_data_32),
-     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_addr   ( r_addr),
-     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en     ( r_en),
-     .mpeg_recorder_avalon_mm_master_write_0_irq_buffer0_done_irq ( buffer0_done_irq),
-     .mpeg_recorder_avalon_mm_master_write_0_irq_buffer1_done_irq ( buffer1_done_irq)
+     .hps_0_f2h_irq1_irq ( hps_irq1),         // hps_0_f2h_irq1.irq
+     .mpeg_recorder_avalon_mm_write_en_en                       ( mode[2]),
+     .mpeg_recorder_avalon_mm_write_en_packet_done              ( packet_done),
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_data ( r_data_32),
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_addr ( r_addr),
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en   ( r_en)
      );
   
 endmodule // mpeg_top_level

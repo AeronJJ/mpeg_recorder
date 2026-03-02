@@ -83,7 +83,7 @@ module mpeg_recorder_avalon_mm_master_write
     if (rst) begin
       r_en <= 1'b0;
       r_addr_r <= '0;
-      address <= 32'h34000000;
+      address <= 32'h32000000;
       writeready <= 1'b0;
       buffer0_done_irq <= 1'b0;
       buffer1_done_irq <= 1'b0;
@@ -95,8 +95,8 @@ module mpeg_recorder_avalon_mm_master_write
           r_en <= 1'b0;
           r_addr_r <= '0;
           writeready <= 1'b0;
-          buffer0_done_irq <= 1'b0;
-          buffer1_done_irq <= 1'b0;
+          // buffer0_done_irq <= 1'b0;
+          // buffer1_done_irq <= 1'b0;
         end
         
         s_READ: begin
@@ -117,13 +117,13 @@ module mpeg_recorder_avalon_mm_master_write
 
         s_DONE: begin
           r_addr_r <= r_addr_r + 1'b1;
-          if (address == 32'h3a400000 - 32'h28) begin // Stop just short to ensure alignment of n*47 words
+          if (address == 32'h38400000 - 32'h28) begin // Stop just short to ensure alignment of n*47 words
             buffer0_done_irq <= 1'b1;
-            address <= 32'h3a400000;
+            address <= 32'h38400000;
           end
-          else if (address == 32'h40800000 - 32'h28) begin
+          else if (address == 32'h3E800000 - 32'h28) begin
             buffer1_done_irq <= 1'b1;
-            address <= 32'h34000000;
+            address <= 32'h32000000;
           end
           else begin
             address <= address + 32'd4; // Increment by 4 bytes
@@ -139,7 +139,7 @@ module mpeg_recorder_avalon_mm_master_write
       r_en <= 1'b0;
       r_addr_r <= '0;
       writeready <= 1'b0;
-      address <= 32'h34000000;
+      address <= 32'h32000000;
       buffer0_done_irq <= 1'b0;
       buffer1_done_irq <= 1'b0;
     end

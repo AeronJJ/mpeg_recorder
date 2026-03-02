@@ -77,11 +77,6 @@
          value = "1";
          type = "int";
       }
-      datum sopceditor_expanded
-      {
-         value = "1";
-         type = "boolean";
-      }
    }
    element hps_0.f2h_sdram0_data
    {
@@ -140,11 +135,6 @@
  <instanceScript></instanceScript>
  <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
  <interface
-   name="hps_0_f2h_irq0"
-   internal="hps_0.f2h_irq0"
-   type="interrupt"
-   dir="start" />
- <interface
    name="hps_0_f2h_irq1"
    internal="hps_0.f2h_irq1"
    type="interrupt"
@@ -157,9 +147,7 @@
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <interface
    name="mpeg_recorder_avalon_mm_master_write_0_irq"
-   internal="mpeg_recorder_avalon_mm_master_write_0.irq"
-   type="conduit"
-   dir="end" />
+   internal="mpeg_recorder_avalon_mm_master_write_0.irq" />
  <interface
    name="mpeg_recorder_avalon_mm_master_write_0_r_interface"
    internal="mpeg_recorder_avalon_mm_master_write_0.r_interface"
@@ -766,6 +754,20 @@
    version="22.1"
    start="clk_0.clk"
    end="hps_0.h2f_lw_axi_clock" />
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="hps_0.f2h_irq0"
+   end="mpeg_recorder_avalon_mm_master_write_0.buffer0_done_irq">
+  <parameter name="irqNumber" value="3" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="hps_0.f2h_irq0"
+   end="mpeg_recorder_avalon_mm_master_write_0.buffer1_done_irq">
+  <parameter name="irqNumber" value="4" />
+ </connection>
  <connection kind="reset" version="22.1" start="hps_0.h2f_reset" end="pio_0.reset" />
  <connection
    kind="reset"
