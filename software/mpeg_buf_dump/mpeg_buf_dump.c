@@ -28,47 +28,27 @@ static struct cdev mpeg_dump_cdev;
 static struct class *mpeg_dump_class;
 static struct device *mpeg_dump_device;
 
-static wait_queue_head_t event_wq;
-static spinlock_t latch_lock;
-
 // Bitmask latch: bit0 = buf0, bit1 = buf1
 static uint8_t pending_mask = 0;
 
 static irqreturn_t buf0_isr(int irq, void *dev_id) {
-    unsigned long flags;
-    spin_lock_irqsave(&latch_lock, flags);
     pending_mask |= 0x1;
-    spin_unlock_irqrestore(&latch_lock, flags);
-    wake_up_interruptible(&event_wq);
     return IRQ_HANDLED;
 }
 
 static irqreturn_t buf1_isr(int irq, void *dev_id) {
-    unsigned long flags;
-    spin_lock_irqsave(&latch_lock, flags);
     pending_mask |= 0x2;
-    spin_unlock_irqrestore(&latch_lock, flags);
-    wake_up_interruptible(&event_wq);
     return IRQ_HANDLED;
 }
 
 static ssize_t mpeg_dump_read(struct file *file, char __user *buf, size_t count, loff_t *ppos) {
     uint8_t mask;
-    unsigned long flags;
-    int ret;
 
     if (count < 1)
         return -EINVAL;
-
-    // Block until at least one bit is set
-    ret = wait_event_interruptible(event_wq, pending_mask != 0);
-    if (ret)
-        return ret;
-
-    spin_lock_irqsave(&latch_lock, flags);
+    
     mask = pending_mask;
     pending_mask = 0;   // clear all bits that userspace will handle
-    spin_unlock_irqrestore(&latch_lock, flags);
 
     if (copy_to_user(buf, &mask, 1))
         return -EFAULT;
@@ -85,9 +65,6 @@ static int __init mpeg_dump_init(void)
 {
     int ret;
 
-    init_waitqueue_head(&event_wq);
-    spin_lock_init(&latch_lock);
-
     ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICE_NAME);
     if (ret) return ret;
 
@@ -97,8 +74,10 @@ static int __init mpeg_dump_init(void)
     mpeg_dump_class = class_create(THIS_MODULE, CLASS_NAME);
     mpeg_dump_device = device_create(mpeg_dump_class, NULL, dev_num, NULL, DEVICE_NAME);
 
-    request_irq(irq_buf0, buf0_isr, 0, "mpeg_dump_buf0", NULL);
-    request_irq(irq_buf1, buf1_isr, 0, "mpeg_dump_buf1", NULL);
+    ret = request_irq(irq_buf0, buf0_isr, 0, "mpeg_buf_dump", NULL);
+    if (ret) return ret;
+    ret = request_irq(irq_buf1, buf1_isr, 0, "mpeg_buf_dump", NULL);
+    if (ret) return ret;
 
     return 0;
 }

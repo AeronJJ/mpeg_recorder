@@ -49,10 +49,12 @@ int main(void) {
     }
     
     // If both interrupts are triggered, don't dump either buffer as data will be corrupted
-    if (mask & 0x3) {
+    if ((mask & 0x1) && (mask & 0x2)) {
+      printf("Both interrupts detected, skipping\n");
       continue;
     }
     else if (mask & 0x1) {// Dump buffer0
+      printf("Interrupt Buffer0\n");
       char filename[256];
       snprintf(filename, sizeof(filename),
 	       "%s%03d%s",
@@ -63,6 +65,7 @@ int main(void) {
       file_number++;
     }
     else if (mask & 0x2) { // Dump buffer1
+      printf("Interrupt Buffer1\n");
       char filename[256];
       snprintf(filename, sizeof(filename),
 	       "%s%03d%s",
@@ -82,24 +85,31 @@ int dump_to_usb(const char* buffer, const char* filename) {
   // Dumps contents of buffer to file on usb
 
   // Open buffer
+  printf("Opening buffer\n");
   int fd = open(buffer, O_RDONLY); // Read only
   if (fd < 0) { perror("Error opening buffer"); return -1; }
 
+  printf("Mmap\n");
   uint32_t* buf = mmap(NULL, BUF_SIZE, PROT_READ, MAP_SHARED, fd, 0);
   if (buf == MAP_FAILED) { perror("Error creating mmap"); return -1; }
 
   // Open USB file
+  printf("Opening USB file\n");
   FILE* usb_file = fopen(filename, "wb");
   if (!usb_file) { perror("Error opening usb"); return -1; }
 
   // Write file
+  printf("Writing file\n");
   size_t n = fwrite(buf, 1, BUF_SIZE, usb_file);
 
+  printf("Flushing USB file\n");
   fflush(usb_file);
 
   if (!n) { perror("No data written to usb"); return -1; }
 
+  printf("Closing USB file\n");
   fclose(usb_file);
+  printf("Closing buffer\n\n");
   close(fd);
 
   return 0;
