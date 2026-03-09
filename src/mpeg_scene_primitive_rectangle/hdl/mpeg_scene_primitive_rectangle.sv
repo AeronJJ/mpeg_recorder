@@ -2,98 +2,98 @@
 import msp2807_colours::*, FONT_DEFINITION::*;
 module mpeg_scene_primitive_rectangle 
   #(
-    parameter			     X_POS = 0,
-    parameter			     Y_POS = 0,
-    parameter			     X_LENGTH = 26,
-    parameter			     Y_LENGTH = 26,
-    parameter			     BORDER_WIDTH = 3,
-    parameter			     COLOUR_RGB565 = MSP_WHITE,
-    parameter			     EN_TEXT = 1'b0,
-    parameter			     TEXT_COLOUR = MSP_BLACK,
-    parameter			     TEXT_LENGTH = 4,
-    parameter			     TEXT_LEFT_JUSTIFICATION_PIXELS = 5,
-    parameter			     TEXT_SIZE = 2,
+    parameter                        X_POS = 0,
+    parameter                        Y_POS = 0,
+    parameter                        X_LENGTH = 26,
+    parameter                        Y_LENGTH = 26,
+    parameter                        BORDER_WIDTH = 3,
+    parameter                        COLOUR_RGB565 = MSP_WHITE,
+    parameter                        EN_TEXT = 1'b0,
+    parameter                        TEXT_COLOUR = MSP_BLACK,
+    parameter                        TEXT_LENGTH = 4,
+    parameter                        TEXT_LEFT_JUSTIFICATION_PIXELS = 5,
+    parameter                        TEXT_SIZE = 2,
     parameter logic [0:FONT_WIDTH-1] TEXT [0:TEXT_LENGTH-1][0:FONT_HEIGHT-1] = '{FONT_T, FONT_e, FONT_s, FONT_t},
-    parameter			     EN_TOUCH = 0,
-    parameter			     TOUCHED_COLOUR = MSP_RED			     
+    parameter                        EN_TOUCH = 0,
+    parameter                        TOUCHED_COLOUR = MSP_RED			     
     )
-   (
-    input wire [8:0]   x, 
-    input wire [7:0]   y,
-    output wire	       pixel_set, 
-    output wire [15:0] pixel_colour,
+  (
+   input wire [8:0]   x, 
+   input wire [7:0]   y,
+   output wire        pixel_set, 
+   output wire [15:0] pixel_colour,
 
-    input wire [8:0]   touch_x,
-    input wire [7:0]   touch_y,
-    output wire	       touched
-    );
+   input wire [8:0]   touch_x,
+   input wire [7:0]   touch_y,
+   output wire        touched
+   );
 
-   generate
-      if (EN_TEXT) begin
-	 wire [15:0] text_colour;
-	 wire text_pixel_set;
-	 mpeg_scene_primitive_text
-	   #(
-	     .X_POS(X_POS + BORDER_WIDTH + TEXT_LEFT_JUSTIFICATION_PIXELS),
-	     .Y_POS(Y_POS + (Y_LENGTH / 2) - (FONT_HEIGHT*(1<<(TEXT_SIZE-1))) / 2),
-	     .SIZE(TEXT_SIZE),
-	     .COLOUR(TEXT_COLOUR),
-	     .LENGTH(TEXT_LENGTH),
-	     .TEXT(TEXT)
-	     )
-	 mpeg_scene_primitive_text0
-	   (
-	    .en(1'b1),
-	    .x(x),
-	    .y(y),
-	    .pixel_colour(text_colour),
-	    .pixel_set(text_pixel_set)
-	    );
+  generate
+    if (EN_TEXT) begin
+      wire [15:0] text_colour;
+      wire text_pixel_set;
+      mpeg_scene_primitive_text
+	#(
+	  .X_POS(X_POS + BORDER_WIDTH + TEXT_LEFT_JUSTIFICATION_PIXELS),
+	  .Y_POS(Y_POS + (Y_LENGTH / 2) - (FONT_HEIGHT*(1<<(TEXT_SIZE-1))) / 2),
+	  .SIZE(TEXT_SIZE),
+	  .COLOUR(TEXT_COLOUR),
+	  .LENGTH(TEXT_LENGTH),
+	  .TEXT(TEXT)
+	  )
+      mpeg_scene_primitive_text0
+	(
+	 .en(1'b1),
+	 .x(x),
+	 .y(y),
+	 .pixel_colour(text_colour),
+	 .pixel_set(text_pixel_set)
+	 );
 
-	 // If isX > x + length && isY > y + length then isSet = true
-	 assign pixel_set = text_pixel_set || ((x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH)));
-	 if (EN_TOUCH) begin
-	    assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
-	 end
-	 else begin
-	    assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
-	 end
-      end // if (EN_TEXT)
-      else begin	 
-	 // If isX > x + length && isY > y + length then isSet = true
-	 assign pixel_set = (x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH));
-	 if (EN_TOUCH) begin
-	    assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
-	 end
-	 else begin
-	    assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
-	 end
-      end // else: !if(EN_TEXT)
-   endgenerate
-
-   generate
+      // If isX > x + length && isY > y + length then isSet = true
+      assign pixel_set = text_pixel_set || ((x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH)));
       if (EN_TOUCH) begin
-	 mpeg_scene_primitive_touch_rectangle
-	   #(
-	     .X_POS(X_POS),
-	     .Y_POS(Y_POS),
-	     .X_LENGTH(X_LENGTH),
-	     .Y_LENGTH(Y_LENGTH)
-	     )
-	 mpeg_scene_primitive_touch_rectangle0
-	   (
-	    .en(1'b1),
-	    .touch_x(touch_x),
-	    .touch_y(touch_y),
-	    .touched(touched)
-	    );
-	 
-      end // if (EN_TOUCH)
-      else begin
-	 assign touched = 1'b0;
+	assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
       end
-   endgenerate
-   
+      else begin
+	assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
+      end
+    end // if (EN_TEXT)
+    else begin	 
+      // If isX > x + length && isY > y + length then isSet = true
+      assign pixel_set = (x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH));
+      if (EN_TOUCH) begin
+	assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
+      end
+      else begin
+	assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
+      end
+    end // else: !if(EN_TEXT)
+  endgenerate
+
+  generate
+    if (EN_TOUCH) begin
+      mpeg_scene_primitive_touch_rectangle
+	#(
+	  .X_POS(X_POS),
+	  .Y_POS(Y_POS),
+	  .X_LENGTH(X_LENGTH),
+	  .Y_LENGTH(Y_LENGTH)
+	  )
+      mpeg_scene_primitive_touch_rectangle0
+	(
+	 .en(1'b1),
+	 .touch_x(touch_x),
+	 .touch_y(touch_y),
+	 .touched(touched)
+	 );
+      
+    end // if (EN_TOUCH)
+    else begin
+      assign touched = 1'b0;
+    end
+  endgenerate
+  
 endmodule // mpeg_scene_primitive_rectangle
 `default_nettype wire
-  
+`
