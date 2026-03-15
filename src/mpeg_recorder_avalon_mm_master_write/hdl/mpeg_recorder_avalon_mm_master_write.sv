@@ -2,29 +2,34 @@
 module mpeg_recorder_avalon_mm_master_write 
   #(
     parameter DATA_WIDTH = 32,
-    parameter ADDR_WIDTH = 32
+    parameter ADDR_WIDTH = 32,
+    parameter NUM_BYTES = DATA_WIDTH / 8,
+    parameter BUF0_BASE_ADDR = 32'h32000000,
+    parameter BUF1_BASE_ADDR = 32'h38400000,
+    parameter BUFFER_LENGTH = 32'h06400000
     )
   (
-   input wire                   clk,
-   input wire                   rst, // Active high reset
+   input wire                     clk,
+   input wire                     rst, // Active high reset
 
-   output reg [ADDR_WIDTH-1:0]  address,
-   output wire [3:0]            burstcount,
-   output wire [DATA_WIDTH-1:0] writedata,
-   output wire [3:0]            byteenable,
-   output reg                   write,
+   output reg [ADDR_WIDTH - 1:0]  address,
+   output wire [NUM_BYTES - 1:0]  burstcount,
+   output wire [DATA_WIDTH - 1:0] writedata,
+   output wire [NUM_BYTES - 1:0]  byteenable,
+   output reg                     write,
+   input wire                     waitrequest,
 
-   input wire                   waitrequest,
-   input wire                   en,
-   input wire                   packet_done,
-   input wire [DATA_WIDTH-1:0]  r_data,
-   output wire [5:0]            r_addr,
-   output reg                   r_en,
+   input wire                     en,
+   input wire                     packet_done,
+   input wire [DATA_WIDTH - 1:0]  r_data,
+   output wire [5:0]              r_addr,
+   output reg                     r_en,
 
-   output reg                   buffer0_done_irq,
-   output reg                   buffer1_done_irq
+   output reg                     buffer0_done_irq,
+   output reg                     buffer1_done_irq
    );
-
+  // TODO: Update with response signal from avalon intefrace
+  // TODO: Update with irq received signal from HPS
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
   assign writedata = { r_data[7:0], 
@@ -35,7 +40,7 @@ module mpeg_recorder_avalon_mm_master_write
 
   // Control write signal //
   reg writeready;
-  always @ (posedge clk or posedge rst) begin
+  always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
       write <= 1'b0;
     end
@@ -83,7 +88,7 @@ module mpeg_recorder_avalon_mm_master_write
     if (rst) begin
       r_en <= 1'b0;
       r_addr_r <= '0;
-      address <= 32'h32000000;
+      address <= BUF0_BASE_ADDR;
       writeready <= 1'b0;
       buffer0_done_irq <= 1'b0;
       buffer1_done_irq <= 1'b0;
@@ -117,13 +122,13 @@ module mpeg_recorder_avalon_mm_master_write
 
         s_DONE: begin
           r_addr_r <= r_addr_r + 1'b1;
-          if (address == 32'h38400000 - 32'h28) begin // Stop just short to ensure alignment of n*47 words
+          if (address == BUF1_BASE_ADDR - 32'h28) begin // Stop just short to ensure alignment of n*47 words
             buffer0_done_irq <= 1'b1;
-            address <= 32'h38400000;
+            address <= BUF1_BASE_ADDR;
           end
-          else if (address == 32'h3E800000 - 32'h28) begin
+          else if (address == BUF1_BASE_ADDR + BUFFER_LENGTH - 32'h28) begin
             buffer1_done_irq <= 1'b1;
-            address <= 32'h32000000;
+            address <= BUF0_BASE_ADDR;
           end
           else begin
             address <= address + 32'd4; // Increment by 4 bytes
