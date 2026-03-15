@@ -35,8 +35,8 @@ module mpeg_controller
       else if (r_addr_internal == ADDR_WIDTH'(PACKET_LENGTH - 1)) begin
 	 r_en_internal <= 1'b0;
       end
-   end
-
+   end // always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n)
+  
    always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
       if (~rst_n) begin
 	 r_addr_internal <= ADDR_WIDTH'(0);
