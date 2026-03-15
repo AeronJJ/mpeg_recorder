@@ -7,7 +7,7 @@ module packet_buffer
     )
   (
    input wire                    rst_n,
-   
+  
    input wire                    w_clk,
    input wire                    w_en,
    input wire [ADDR_WIDTH - 1:0] w_addr,
@@ -33,4 +33,4 @@ module packet_buffer
   
 endmodule // packet_buffer
 `default_nettype wire
-  
+

@@ -96,4 +96,3 @@ module mpeg_scene_primitive_rectangle
   
 endmodule // mpeg_scene_primitive_rectangle
 `default_nettype wire
-`
