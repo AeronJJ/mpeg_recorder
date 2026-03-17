@@ -51,22 +51,47 @@ module mpeg_scene_primitive_rectangle
 	 );
 
       // If isX > x + length && isY > y + length then isSet = true
-      assign pixel_set = text_pixel_set || ((x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH)));
+      assign pixel_set = text_pixel_set            || 
+                         ((x > X_POS)              && 
+                          (x < (X_POS + X_LENGTH)) && 
+                          (y > Y_POS)              && 
+                          (y < (Y_POS + Y_LENGTH)));
       if (EN_TOUCH) begin
-	assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
+	assign pixel_colour = text_pixel_set ? text_colour            : 
+                              (x < (X_POS + BORDER_WIDTH))            || 
+                              (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || 
+                              (y < (Y_POS + BORDER_WIDTH))            || 
+                              (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 
+                              16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
       end
       else begin
-	assign pixel_colour = text_pixel_set ? text_colour : (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
+	assign pixel_colour = text_pixel_set ? text_colour            : 
+                              (x < (X_POS + BORDER_WIDTH))            || 
+                              (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || 
+                              (y < (Y_POS + BORDER_WIDTH))            || 
+                              (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 
+                              16'b0 : COLOUR_RGB565;
       end
     end // if (EN_TEXT)
     else begin	 
       // If isX > x + length && isY > y + length then isSet = true
-      assign pixel_set = (x > X_POS) && (x < (X_POS + X_LENGTH)) && (y > Y_POS) && (y < (Y_POS + Y_LENGTH));
+      assign pixel_set = (x > X_POS)              && 
+                         (x < (X_POS + X_LENGTH)) && 
+                         (y > Y_POS)              && 
+                         (y < (Y_POS + Y_LENGTH));
       if (EN_TOUCH) begin
-	assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
+	assign pixel_colour = (x < (X_POS + BORDER_WIDTH))                    || 
+                              (x > (X_POS + X_LENGTH - BORDER_WIDTH))         || 
+                              (y < (Y_POS + BORDER_WIDTH))                    || 
+                              (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : 
+                              (touched ? TOUCHED_COLOUR : COLOUR_RGB565);
       end
       else begin
-	assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || (y < (Y_POS + BORDER_WIDTH)) || (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 16'b0 : COLOUR_RGB565;
+	assign pixel_colour = (x < (X_POS + BORDER_WIDTH)) || 
+                              (x > (X_POS + X_LENGTH - BORDER_WIDTH)) || 
+                              (y < (Y_POS + BORDER_WIDTH)) || 
+                              (y > (Y_POS + Y_LENGTH - BORDER_WIDTH)) ? 
+                              16'b0 : COLOUR_RGB565;
       end
     end // else: !if(EN_TEXT)
   endgenerate
@@ -96,4 +121,3 @@ module mpeg_scene_primitive_rectangle
   
 endmodule // mpeg_scene_primitive_rectangle
 `default_nettype wire
-`
