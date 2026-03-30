@@ -40,8 +40,8 @@ module mpeg_playback
     if (~rst_n) begin
       r_data_switch <= 1'b0;
     end
-    else if (running) begin
-      r_data_switch <= r_en_mem0;
+    else if (running && packet_done) begin
+      r_data_switch <= ~r_data_switch;
     end
   end
   assign r_data = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
@@ -93,9 +93,10 @@ module mpeg_playback
      );
 
   wire byte_unpacker_en;
-  
+  /* verilator lint_off UNUSEDSIGNAL */
   wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0] mpeg_controller_addr;
   reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]  mpeg_controller_addr_d;
+  /* verilator lint_on UNUSEDSIGNAL */
   
   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
@@ -121,7 +122,8 @@ module mpeg_playback
      .mpeg_valid_out(mpeg_valid_out),
      .word_r_en(word_r_en)
      );
-  
+
+  assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
   // //
 
   // Generate packet done signal //
@@ -139,7 +141,7 @@ module mpeg_playback
     end
   end
 
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       packet_done_pulse <= 1'b0;
     end
