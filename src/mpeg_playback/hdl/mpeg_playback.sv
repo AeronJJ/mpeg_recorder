@@ -157,7 +157,10 @@ module mpeg_playback
     if (~rst_n) begin
       pb_r_sel <= 1'b0;
     end
-    if (packet_done) begin
+    else if (~running) begin
+      pb_r_sel <= 1'b0;
+    end
+    else if (packet_done) begin
       pb_r_sel <= ~pb_r_sel;
     end
   end

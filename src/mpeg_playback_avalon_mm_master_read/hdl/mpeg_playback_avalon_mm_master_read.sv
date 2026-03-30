@@ -75,7 +75,6 @@ module mpeg_playback_avalon_mm_master_read
       read <= 1'b0;
       readdata_reg <= '0;
       writeready <= 1'b0;
-      address <= BUF0_BASE_ADDR;
     end
     else if (~waitrequest && read) begin // Read accepted
       read <= 1'b0;
