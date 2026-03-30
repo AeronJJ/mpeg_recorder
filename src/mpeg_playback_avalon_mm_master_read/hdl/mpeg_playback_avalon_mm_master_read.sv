@@ -19,6 +19,7 @@ module mpeg_playback_avalon_mm_master_read
    output wire [NUM_BYTES - 1:0]  byteenable,
    output reg                     read,
    input wire                     waitrequest,
+   input wire                     readdatavalid,
 
    input wire                     en,
    input wire                     packet_done, // Send new packet when pulsed
@@ -27,11 +28,35 @@ module mpeg_playback_avalon_mm_master_read
    output wire                    w_en_pb0,
    output wire                    w_en_pb1,
 
+   input wire                     buffer0_filled,
+   input wire                     buffer1_filled,
+
    output reg                     buffer0_fill_request_irq,
    output reg                     buffer1_fill_request_irq,
 
-   output reg                     init_done // Goes high once pb0 is filled
+   output reg                     init_done    // Goes high once pb0 is filled
    );
+
+  // Sync bufferN_filled signals //
+  reg buffer0_filled_sync;
+  reg buffer1_filled_sync;
+  reg buffer0_filled_sync_d;
+  reg buffer1_filled_sync_d;
+  always_ff @ (posedge clk or posedge rst) begin
+    if (rst) begin
+      buffer0_filled_sync <= 1'b0;
+      buffer1_filled_sync <= 1'b0;
+      buffer0_filled_sync_d <= 1'b0;
+      buffer1_filled_sync_d <= 1'b0;
+    end
+    else begin
+      buffer0_filled_sync <= buffer0_filled_sync_d;
+      buffer1_filled_sync <= buffer1_filled_sync_d;
+      buffer0_filled_sync_d <= buffer0_filled;
+      buffer1_filled_sync_d <= buffer1_filled;
+    end
+  end
+  // //
 
   reg [ADDR_WIDTH - 1:0] readdata_reg;
   reg                    writeready;
@@ -186,7 +211,7 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_INIT_WAIT: begin
-        if (buffer0_filled) begin
+        if (buffer0_filled_sync) begin
           next_state = s_REQ_BUF1;
         end
       end
