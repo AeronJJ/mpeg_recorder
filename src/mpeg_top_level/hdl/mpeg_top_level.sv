@@ -112,11 +112,16 @@ module mpeg_top_level
   end
   // //
 
-  // mpeg recorder //
+  // MPEG Recorder //
   wire [31:0] r_data_32;
   wire [5:0]  r_addr;
   wire        r_en;
   wire        packet_done;
+
+  wire        mpeg_clk_6MHz_recorder;
+  wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_recorder;
+  wire                         mpeg_sync_recorder;
+  wire                         mpeg_valid_recorder;
     
   mpeg_recorder
     #(
@@ -132,10 +137,10 @@ module mpeg_top_level
      .sys_clk(sys_clk_100MHz),
      .start(~start_sync),
      .stop(~stop_sync),
-     .mpeg_clk_6MHz_out(mpeg_clk_6MHz_out),
-     .mpeg_data_8_out(mpeg_data_8_out),
-     .mpeg_sync_out(mpeg_sync_out),
-     .mpeg_valid_out(mpeg_valid_out),
+     .mpeg_clk_6MHz_out(mpeg_clk_6MHz_recorder),
+     .mpeg_data_8_out(mpeg_data_8_recorder),
+     .mpeg_sync_out(mpeg_sync_recorder),
+     .mpeg_valid_out(mpeg_valid_recorder),
      .r_data_32(r_data_32),
      .r_addr(r_addr),
      .r_en(r_en),
@@ -143,8 +148,51 @@ module mpeg_top_level
      );
   // //
 
+  // MPEG Playback //
+  wire [31:0] pb_w_data;
+  wire [5:0]  pb_w_addr;
+  wire        pb0_w_en;
+  wire        pb1_w_en;
+  wire        running_playback;
+  wire        packet_done_playback;
+
+  wire        mpeg_clk_6MHz_playback;
+  wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8_playback;
+  wire                          mpeg_sync_playback;
+  wire                          mpeg_valid_playback;
+  
+  mpeg_playback
+    #(
+      .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
+      )
+  mpeg_mpeg_playback_0
+    (
+     .sys_clk(sys_clk_100MHz),
+     .rst_n(rst_n_gated),
+     .pb_w_data(pb_w_data),
+     .pb_w_addr(pb_w_addr),
+     .pb0_w_en(pb0_w_en),
+     .pb1_w_en(pb1_w_en),
+     .running(running_playback),
+     .packet_done_pulse(packet_done_playback),
+     .mpeg_clk_6MHz(mpeg_clk_6MHz),
+     .mpeg_sync(mpeg_sync),
+     .mpeg_clk_6MHz_out(mpeg_clk_6MHz_playback),
+     .mpeg_data_8_out(mpeg_data_8_playback),
+     .mpeg_sync_out(mpeg_sync_playback),
+     .mpeg_valid_out(mpeg_valid_playback)
+     );
+  // //
+
+  // MPEG stream output //
+  assign mpeg_clk_6MHz_out = mode[3] ? mpeg_clk_6MHz_playback : mpeg_clk_6MHz_recorder;
+  assign mpeg_data_8_out = mode[3] ? mpeg_data_8_playback : mpeg_data_8_recorder;
+  assign mpeg_sync_out = mode[3] ? mpeg_sync_playback : mpeg_sync_recorder;
+  assign mpeg_valid_out = mode[3] ? mpeg_valid_playback : mpeg_valid_recorder;
+  // //
+
   // LCD //
-  wire [3:0] mode;
+  wire [3:0] mode; // Onehot (playback, record, passthrough, idle)
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
@@ -171,7 +219,6 @@ module mpeg_top_level
   hps u0 
     (
      .clk_clk            ( sys_clk_100MHz),   //            clk.clk
-     .lw_dout_export     ( lw_dout),          //        lw_dout.export
      .memory_mem_a       ( HPS_DDR3_ADDR),    //         memory.mem_a
      .memory_mem_ba      ( HPS_DDR3_BA),      //               .mem_ba
      .memory_mem_ck      ( HPS_DDR3_CK_P),    //               .mem_ck
@@ -194,7 +241,14 @@ module mpeg_top_level
      .mpeg_recorder_avalon_mm_write_en_packet_done              ( packet_done),
      .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_data ( r_data_32),
      .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_addr ( r_addr),
-     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en   ( r_en)
+     .mpeg_recorder_avalon_mm_master_write_0_r_interface_r_en   ( r_en),
+     .mpeg_playback_avalon_mm_master_read_0_en_en               ( mode[3]), // mpeg_playback_avalon_mm_master_read_0_en.en
+     .mpeg_playback_avalon_mm_master_read_0_en_packet_done      ( packet_done_playback), // .packet_done
+     .mpeg_playback_avalon_mm_master_read_0_en_init_done        ( running_playback), // .init_done
+     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_data  ( pb_w_data), //  mpeg_playback_avalon_mm_master_read_0_w_interface.w_data
+     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_addr  ( pb_w_addr), // .w_addr
+     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb0( pb0_w_en), // .w_en_pb0
+     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb1( pb1_w_en)  // .w_en_pb1
      );
   
 endmodule // mpeg_top_level
