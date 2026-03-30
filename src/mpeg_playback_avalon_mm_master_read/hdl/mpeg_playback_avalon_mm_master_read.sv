@@ -34,6 +34,7 @@ module mpeg_playback_avalon_mm_master_read
    );
 
   reg [ADDR_WIDTH - 1:0] readdata_reg;
+  reg                    writeready;
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
   assign w_data = { readdata_reg[7:0],
@@ -90,8 +91,8 @@ module mpeg_playback_avalon_mm_master_read
   reg [3:0]  current_state;
   reg [3:0]  next_state;
 
-  always_ff @ (posedge clk or posedge rst_n) begin
-    if (~rst_n) begin
+  always_ff @ (posedge clk or posedge rst) begin
+    if (rst) begin
       init_done <= 1'b0;
       fill_pb0 <= 1'b0;
       
@@ -169,7 +170,7 @@ module mpeg_playback_avalon_mm_master_read
     else begin
       current_state <= s_IDLE;
     end
-  end // always_ff @ (posedge clk or posedge rst_n)
+  end // always_ff @ (posedge clk or posedge rst)
 
   always_comb begin
     next_state = current_state;
