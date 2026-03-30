@@ -70,6 +70,22 @@
          type = "String";
       }
    }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element hps_0
    {
       datum _sortIndex
@@ -86,20 +102,23 @@
          type = "String";
       }
    }
-   element mpeg_recorder_avalon_mm_master_write_0
+   element mpeg_playback_avalon_mm_master_read_0
    {
       datum _sortIndex
       {
          value = "3";
          type = "int";
       }
-      datum sopceditor_expanded
+   }
+   element mpeg_playback_buffer_filled_regs_0
+   {
+      datum _sortIndex
       {
-         value = "1";
-         type = "boolean";
+         value = "4";
+         type = "int";
       }
    }
-   element pio_0
+   element mpeg_recorder_avalon_mm_master_write_0
    {
       datum _sortIndex
       {
@@ -139,12 +158,17 @@
    internal="hps_0.f2h_irq1"
    type="interrupt"
    dir="start" />
+ <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
  <interface
-   name="lw_dout"
-   internal="pio_0.external_connection"
+   name="mpeg_playback_avalon_mm_master_read_0_en"
+   internal="mpeg_playback_avalon_mm_master_read_0.en"
    type="conduit"
    dir="end" />
- <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
+ <interface
+   name="mpeg_playback_avalon_mm_master_read_0_w_interface"
+   internal="mpeg_playback_avalon_mm_master_read_0.w_interface"
+   type="conduit"
+   dir="end" />
  <interface
    name="mpeg_recorder_avalon_mm_master_write_0_irq"
    internal="mpeg_recorder_avalon_mm_master_write_0.irq" />
@@ -266,7 +290,7 @@
   <parameter name="EXTRA_SETTINGS" value="" />
   <parameter name="F2H_AXI_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM0_CLOCK_FREQ" value="100000000" />
-  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="100" />
+  <parameter name="F2H_SDRAM1_CLOCK_FREQ" value="100000000" />
   <parameter name="F2H_SDRAM2_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM3_CLOCK_FREQ" value="100" />
   <parameter name="F2H_SDRAM4_CLOCK_FREQ" value="100" />
@@ -278,8 +302,8 @@
   <parameter name="F2SCLK_SDRAMCLK_Enable" value="false" />
   <parameter name="F2SCLK_SDRAMCLK_FREQ" value="0" />
   <parameter name="F2SCLK_WARMRST_Enable" value="false" />
-  <parameter name="F2SDRAM_Type">Avalon-MM Write-Only</parameter>
-  <parameter name="F2SDRAM_Width" value="32" />
+  <parameter name="F2SDRAM_Type">Avalon-MM Write-Only,Avalon-MM Read-Only</parameter>
+  <parameter name="F2SDRAM_Width" value="32,32" />
   <parameter name="F2SINTERRUPT_Enable" value="true" />
   <parameter name="F2S_Width" value="0" />
   <parameter name="FIX_READ_LATENCY" value="8" />
@@ -699,26 +723,29 @@
   <parameter name="use_default_mpu_clk" value="true" />
  </module>
  <module
+   name="mpeg_playback_avalon_mm_master_read_0"
+   kind="mpeg_playback_avalon_mm_master_read"
+   version="1.0"
+   enabled="1">
+  <parameter name="ADDR_WIDTH" value="32" />
+  <parameter name="BUF0_BASE_ADDR" value="838860800" />
+  <parameter name="BUF1_BASE_ADDR" value="943718400" />
+  <parameter name="BUFFER_LENGTH" value="104857600" />
+  <parameter name="BUFFER_OFFSET" value="36" />
+  <parameter name="DATA_WIDTH" value="32" />
+ </module>
+ <module
+   name="mpeg_playback_buffer_filled_regs_0"
+   kind="mpeg_playback_buffer_filled_regs"
+   version="1.0"
+   enabled="1" />
+ <module
    name="mpeg_recorder_avalon_mm_master_write_0"
    kind="mpeg_recorder_avalon_mm_master_write"
    version="1.0"
    enabled="1">
   <parameter name="ADDR_WIDTH" value="32" />
   <parameter name="DATA_WIDTH" value="32" />
- </module>
- <module name="pio_0" kind="altera_avalon_pio" version="22.1" enabled="1">
-  <parameter name="bitClearingEdgeCapReg" value="false" />
-  <parameter name="bitModifyingOutReg" value="false" />
-  <parameter name="captureEdge" value="false" />
-  <parameter name="clockRate" value="100000000" />
-  <parameter name="direction" value="Output" />
-  <parameter name="edgeType" value="RISING" />
-  <parameter name="generateIRQ" value="false" />
-  <parameter name="irqType" value="LEVEL" />
-  <parameter name="resetValue" value="0" />
-  <parameter name="simDoTestBenchWiring" value="false" />
-  <parameter name="simDrivenValue" value="0" />
-  <parameter name="width" value="8" />
  </module>
  <connection
    kind="avalon"
@@ -732,13 +759,21 @@
  <connection
    kind="avalon"
    version="22.1"
-   start="hps_0.h2f_lw_axi_master"
-   end="pio_0.s1">
+   start="mpeg_playback_avalon_mm_master_read_0.avalon_master"
+   end="hps_0.f2h_sdram1_data">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection kind="clock" version="22.1" start="clk_0.clk" end="pio_0.clk" />
+ <connection
+   kind="avalon"
+   version="22.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="mpeg_playback_buffer_filled_regs_0.avalon_slave">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
  <connection
    kind="clock"
    version="22.1"
@@ -748,12 +783,38 @@
    kind="clock"
    version="22.1"
    start="clk_0.clk"
+   end="mpeg_playback_avalon_mm_master_read_0.clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
+   end="mpeg_playback_buffer_filled_regs_0.clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
    end="hps_0.f2h_sdram0_clock" />
  <connection
    kind="clock"
    version="22.1"
    start="clk_0.clk"
+   end="hps_0.f2h_sdram1_clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
    end="hps_0.h2f_lw_axi_clock" />
+ <connection
+   kind="conduit"
+   version="22.1"
+   start="mpeg_playback_avalon_mm_master_read_0.buffer_filled"
+   end="mpeg_playback_buffer_filled_regs_0.buffer_filled">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
  <connection
    kind="interrupt"
    version="22.1"
@@ -765,15 +826,38 @@
    kind="interrupt"
    version="22.1"
    start="hps_0.f2h_irq0"
+   end="mpeg_playback_avalon_mm_master_read_0.buffer0_fill_request_irq">
+  <parameter name="irqNumber" value="5" />
+ </connection>
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="hps_0.f2h_irq0"
    end="mpeg_recorder_avalon_mm_master_write_0.buffer1_done_irq">
   <parameter name="irqNumber" value="4" />
  </connection>
- <connection kind="reset" version="22.1" start="hps_0.h2f_reset" end="pio_0.reset" />
+ <connection
+   kind="interrupt"
+   version="22.1"
+   start="hps_0.f2h_irq0"
+   end="mpeg_playback_avalon_mm_master_read_0.buffer1_fill_request_irq">
+  <parameter name="irqNumber" value="6" />
+ </connection>
  <connection
    kind="reset"
    version="22.1"
    start="hps_0.h2f_reset"
    end="mpeg_recorder_avalon_mm_master_write_0.reset" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="hps_0.h2f_reset"
+   end="mpeg_playback_avalon_mm_master_read_0.rst" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="hps_0.h2f_reset"
+   end="mpeg_playback_buffer_filled_regs_0.rst" />
  <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
  <interconnectRequirement for="$system" name="qsys_mm.enableEccProtection" value="FALSE" />
  <interconnectRequirement for="$system" name="qsys_mm.insertDefaultSlave" value="FALSE" />
