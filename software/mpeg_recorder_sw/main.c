@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <time.h>
+#include <sys/sendfile.h>
 
 #define BUF_SIZE 0x06400000
 
@@ -32,10 +33,10 @@ static inline double timespec_to_sec(struct timespec *t) {
   return t->tv_sec + t->tv_nsec * 1e-9;
 }
 
-void record(uint8_t mask);
+int record(uint8_t mask);
 int dump_to_usb(const char* buffer, const char* filename);
 
-void playback(uint8_t mask);
+int playback(uint8_t mask);
 int load_from_usb(const char* buffer, const char* filename);
 
 static void sigint_handler(int sig) {
@@ -85,10 +86,16 @@ int main(void) {
     }
     else {
       if (record_mode) {
-	record(mask);
+	if (record(mask)) break;
       }
       else if (playback_mode) {
-	playback(mask);
+	int ret = playback(mask);
+	if (ret == 1) { // Run out of files on USB
+	  playback_mode = 0;
+	}
+	else if (ret == -1) { // Error
+	  break;
+	}	
       }
       else {
 	continue;
@@ -100,11 +107,11 @@ int main(void) {
   return 0;
 }
 
-void record(uint8_t mask) {
+int record(uint8_t mask) {
   // If both interrupts are triggered, don't dump either buffer as data will be corrupted
   if ((mask & buf0_mask) && (mask & buf1_mask)) {
     printf("Both interrupts detected, skipping\n");
-    return;
+    return 0;
   }
   else if (mask & buf0_mask) {// Dump buffer0
     printf("Interrupt Buffer0\n");
@@ -114,7 +121,7 @@ void record(uint8_t mask) {
 	     usb_loc,
 	     file_number,
 	     file_suffix);
-    if (dump_to_usb(buffer0_loc, filename)) break;
+    if (dump_to_usb(buffer0_loc, filename)) return -1;
     file_number++;
   }
   else if (mask & buf1_mask) { // Dump buffer1
@@ -125,34 +132,36 @@ void record(uint8_t mask) {
 	     usb_loc,
 	     file_number,
 	     file_suffix);
-    if (dump_to_usb(buffer1_loc, filename)) break;
+    if (dump_to_usb(buffer1_loc, filename)) return -1;
     file_number++;
   }
 }
 
 int dump_to_usb(const char* buffer, const char* filename) {
-  // Dumps contents of buffer to file on usb
+  printf("Dumping to USB (sendfile) %s\n", filename);
 
-  printf("Dumping to USB file %s\n", filename);
+  // Open source buffer (memory-mapped file/device)
+  int mem_fd = open(buffer, O_RDONLY);
+  if (mem_fd < 0) { perror("open buffer"); return -1; }
 
-  // Open buffer
-  int fd = open(buffer, O_RDONLY); // Read only
-  if (fd < 0) { perror("Error opening buffer"); return -1; }
-
-  uint32_t* buf = mmap(NULL, BUF_SIZE, PROT_READ, MAP_SHARED, fd, 0);
-  if (buf == MAP_FAILED) { perror("Error creating mmap"); return -1; }
-
-  // Open USB file
-  FILE* usb_file = fopen(filename, "wb");
-  if (!usb_file) { perror("Error opening usb"); return -1; }
+  // Open destination USB file
+  int usb_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (usb_fd < 0) { perror("open usb file"); return -1; }
 
   struct timespec t0, t1;
-
   clock_gettime(CLOCK_MONOTONIC, &t0);
-  
-  size_t n = fwrite(buf, 1, BUF_SIZE, usb_file);
 
-  fflush(usb_file);
+  off_t offset = 0;
+  ssize_t total = 0;
+
+  while (total < BUF_SIZE) {
+    ssize_t n = sendfile(usb_fd, mem_fd, &offset, BUF_SIZE - total);
+    if (n <= 0) {
+      perror("sendfile write");
+      break;
+    }
+    total += n;
+  }
 
   clock_gettime(CLOCK_MONOTONIC, &t1);
 
@@ -161,28 +170,89 @@ int dump_to_usb(const char* buffer, const char* filename) {
 
   printf("Write time: %.3f s\n", dt);
   printf("Throughput: %.2f MB/s\n", mb / dt);
+  printf("Transferred %zd bytes\n", total);
 
-  if (!n) { perror("No data written to usb"); return -1; }
+  close(mem_fd);
+  close(usb_fd);
 
-  printf("Written %zu elements out of %d total\n", n, BUF_SIZE);
-  fclose(usb_file);
-  close(fd);
-
-  return 0;
+  return (total == BUF_SIZE) ? 0 : -1;
 }
 
-void playback(uint8_t mask) {
+int playback(uint8_t mask) {
   if (mask & playback_buf0_mask) {
     printf("Interrupt Playback Buffer0\n");
+    char filename[256];
+    snprintf(filename, sizeof(filename),
+	     "%s%03d%s",
+	     usb_loc,
+	     file_number,
+	     file_suffix);
+    if (access(filename, F_OK) == 0) {
+      if (load_from_usb(buffer0_loc, filename)) return -1;
+    }
+    else {
+      return 1;
+    }
     file_number++;
   }
   if (mask & playback_buf1_mask) {
     printf("Interrupt Playback Buffer1\n");
-    
+    char filename[256];
+    snprintf(filename, sizeof(filename),
+	     "%s%03d%s",
+	     usb_loc,
+	     file_number,
+	     file_suffix);
+    if (access(filename, F_OK) == 0) {
+      if (load_from_usb(buffer1_loc, filename)) return -1;
+    }
+    else {
+      return 1;
+    }
     file_number++;
   }
 }
 
 int load_from_usb(const char* buffer, const char* filename) {
+  printf("Loading from USB (sendfile) %s\n", filename);
 
+  // Open destination buffer (must be writable)
+  int mem_fd = open(buffer, O_RDWR);
+  if (mem_fd < 0) { perror("open buffer"); return -1; }
+
+  // Open source USB file
+  int usb_fd = open(filename, O_RDONLY);
+  if (usb_fd < 0) { perror("open usb file"); return -1; }
+
+  struct timespec t0, t1;
+  clock_gettime(CLOCK_MONOTONIC, &t0);
+
+  off_t offset = 0;
+  ssize_t total = 0;
+
+  while (total < BUF_SIZE) {
+    ssize_t n = sendfile(mem_fd, usb_fd, &offset, BUF_SIZE - total);
+    if (n <= 0) {
+      perror("sendfile read");
+      break;
+    }
+    total += n;
+  }
+
+  clock_gettime(CLOCK_MONOTONIC, &t1);
+
+  double dt = timespec_to_sec(&t1) - timespec_to_sec(&t0);
+  double mb = BUF_SIZE / (1024.0 * 1024.0);
+
+  printf("Read time: %.3f s\n", dt);
+  printf("Throughput: %.2f MB/s\n", mb / dt);
+  printf("Transferred %zd bytes\n", total);
+
+  // Ensure data is visible to hardware
+  fsync(mem_fd);
+
+  close(mem_fd);
+  close(usb_fd);
+
+  return (total == BUF_SIZE) ? 0 : -1;
 }

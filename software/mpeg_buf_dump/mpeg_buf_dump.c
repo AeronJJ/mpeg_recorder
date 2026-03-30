@@ -41,7 +41,7 @@ static struct cdev mpeg_dump_cdev;
 static struct class *mpeg_dump_class;
 static struct device *mpeg_dump_device;
 
-// Bitmask latch: bit0 = buf0, bit1 = buf1
+// Bitmask latch
 static uint8_t pending_mask = 0;
 
 static irqreturn_t idle_isr(int irq, void *dev_id) {
