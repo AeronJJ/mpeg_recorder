@@ -37,7 +37,7 @@ module mpeg_recorder_avalon_mm_master_write
   mpeg_irq mpeg_irq_buffer0_irq_inst
     (
      .clk(clk),
-     .rst_n(rst_n),
+     .rst_n(~rst),
      .en_interrupt(en_buffer0_done_irq),
      .irq(buffer0_done_irq),
      .irq_reset(buffer0_done_irq_received)
@@ -47,7 +47,7 @@ module mpeg_recorder_avalon_mm_master_write
   mpeg_irq mpeg_irq_buffer1_irq_inst
     (
      .clk(clk),
-     .rst_n(rst_n),
+     .rst_n(~rst),
      .en_interrupt(en_buffer1_done_irq),
      .irq(buffer1_done_irq),
      .irq_reset(buffer1_done_irq_received)
