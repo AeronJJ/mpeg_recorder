@@ -86,6 +86,22 @@
          type = "String";
       }
    }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element hps_0
    {
       datum _sortIndex
@@ -116,6 +132,14 @@
       {
          value = "4";
          type = "int";
+      }
+   }
+   element mpeg_playback_buffer_filled_regs_0.avalon_slave
+   {
+      datum baseAddress
+      {
+         value = "65536";
+         type = "String";
       }
    }
    element mpeg_recorder_avalon_mm_master_write_0
@@ -173,6 +197,11 @@
    type="conduit"
    dir="end" />
  <interface
+   name="mpeg_playback_avalon_mm_master_read_0_new_clk"
+   internal="mpeg_playback_avalon_mm_master_read_0.new_clk"
+   type="clock"
+   dir="start" />
+ <interface
    name="mpeg_playback_avalon_mm_master_read_0_w_interface"
    internal="mpeg_playback_avalon_mm_master_read_0.w_interface"
    type="conduit"
@@ -191,6 +220,11 @@
  <interface
    name="mpeg_recorder_avalon_mm_write_en"
    internal="mpeg_recorder_avalon_mm_master_write_0.en"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="mpeg_recorder_mode_select_interface_0_mode"
+   internal="mpeg_recorder_mode_select_interface_0.mode"
    type="conduit"
    dir="end" />
  <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
@@ -784,7 +818,7 @@
    start="hps_0.h2f_lw_axi_master"
    end="mpeg_playback_buffer_filled_regs_0.avalon_slave">
   <parameter name="arbitrationPriority" value="1" />
-  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="baseAddress" value="0x00010000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
