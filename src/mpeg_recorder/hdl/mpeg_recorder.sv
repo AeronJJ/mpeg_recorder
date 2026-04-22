@@ -20,51 +20,22 @@ module mpeg_recorder
 
    input wire                          start,
    input wire                          stop,
-
-   output wire                         mpeg_clk_6MHz_out,
-   output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
-   output wire                         mpeg_sync_out,
-   output reg                          mpeg_valid_out,
-
-    // output wire [MPEG_MEM_LENGTH - 1:0] w_data_32,
-    // output wire                         w_en
+   
    output wire [MPEG_MEM_LENGTH - 1:0] r_data_32,
    input wire [MPEG_ADDR_WIDTH - 1:0]  r_addr,
    input wire                          r_en,
-   output wire                         packet_done_out
+   output reg                          packet_done_out
    );
 
-  // assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
-  assign packet_done_out = packet_done;
-  
-  // Buffer 4 bytes of input mpeg data //
-  wire [MPEG_MEM_LENGTH - 1:0] mpeg_data_32_packed;
-  wire                         word_w_en;
-
-  // assign w_data_32 = mpeg_data_32_packed;
-  // assign w_en = word_w_en;
-  
-  byte_packer 
-    #(.NUM_WRITE_BITS(MPEG_DATA_WIDTH), .NUM_WRITES(MPEG_MEM_WIDTH)) 
-  mpeg_byte_packer 
-    (
-     .rst_n(rst_n),
-     .w_clk(mpeg_clk_6MHz),
-     .w_data(mpeg_data_8),
-     .en(running & mpeg_valid),
-     .w_en(word_w_en),
-     .data_packed(mpeg_data_32_packed)
-     );
-  
-  // //
-
-  // Generate write address //
+  // Packet done signals //
   wire packet_done;
   wire packet_done_r;
   reg  packet_done_d;
+  
   assign packet_done = (packet_done_r ^ packet_done_d) & packet_done_r;
-  assign packet_done_r = (w_addr == MPEG_ADDR_WIDTH'(MPEG_PACKET_LENGTH)) ? 1'b1 : 1'b0;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  assign packet_done_r = (w_addr == 8'd188) ? 1'b1 : 1'b0;
+  
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin 
     if (~rst_n) begin
       packet_done_d <= 1'b0;
     end
@@ -74,7 +45,7 @@ module mpeg_recorder
   end
 
   reg packet_done_pulse;
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin 
     if (~rst_n) begin
       packet_done_pulse <= 1'b0;
     end
@@ -82,13 +53,27 @@ module mpeg_recorder
       packet_done_pulse <= packet_done;
     end
   end
-  
-  reg	w_en_mem0;
-  reg   r_en_mem0;
-  reg   r_en_mem0_r;
-  // assign r_en_mem0 = ~w_en_mem0;
 
-  // Sync r_en into sys_clk //
+  // //
+
+  // Outsync packet_done //
+  reg packet_done_out_d;
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
+    if (~rst_n) begin
+      packet_done_out <= 1'b0;
+      packet_done_out_d <= 1'b0;
+    end
+    else begin
+      packet_done_out <= packet_done_out_d;
+      packet_done_out_d <= packet_done;
+    end
+  end
+  // //
+
+  // Sync w_en_mem0 into sys_clk //
+  reg r_en_mem0;
+  reg r_en_mem0_r;
+
   always_ff @ (posedge sys_clk or negedge rst_n) begin
     if (~rst_n) begin
       r_en_mem0_r <= 1'b0;
@@ -99,24 +84,33 @@ module mpeg_recorder
       r_en_mem0 <= r_en_mem0_r;
     end
   end
-
   // //
   
-  reg [MPEG_ADDR_WIDTH - 1:0] w_addr;
+  // Delay mpeg_data by one clock cycle //
+  reg [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_d;
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+    if (~rst_n) begin
+      mpeg_data_8_d <= '0;
+    end
+    else begin
+      mpeg_data_8_d <= mpeg_data_8;
+    end
+  end
+  // //
+
+  // Generate write address for packet buffer //
+  reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr;
   reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr_tmp;
 
-  reg                             packet_started;
-  
+  reg                             packet_started;  
 
   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
-      w_addr_tmp <= '0;
       w_addr <= '0;
       packet_started <= 1'b0;
     end
     else if (running) begin
       if (mpeg_sync) begin
-	w_addr_tmp <= '0;
 	w_addr <= '0;
 	packet_started <= 1'b1;
       end
@@ -124,13 +118,15 @@ module mpeg_recorder
 	packet_started <= 1'b0;
       end
       else if (packet_started) begin
-	w_addr_tmp <= w_addr_tmp + 1'b1;
-	w_addr <= w_addr_tmp[MPEG_ADDR_WIDTH - 1 + 2:2];
+	w_addr <= w_addr + 1'b1;
       end
     end
   end // always_ff @ (negedge mpeg_clk_6MHz or posedge mpeg_sync)
+  // //
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  // Generate write enable signal to swap between packet buffers //
+  reg w_en_mem0;
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
     if (~rst_n) begin
       w_en_mem0 <= 1'b0;
     end
@@ -143,8 +139,7 @@ module mpeg_recorder
   end
   // //
 
-  // Create packet buffers //
-  // wire [MPEG_MEM_LENGTH - 1:0] r_data;
+  // Switch between read data from packet buffer 0 and 1 //
   wire [MPEG_MEM_LENGTH - 1:0] r_data_mem0;
   wire [MPEG_MEM_LENGTH - 1:0] r_data_mem1;
 
@@ -159,20 +154,23 @@ module mpeg_recorder
     end
   end
   assign r_data_32 = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
+  // //
   
-  packet_buffer #(.ADDR_WIDTH(MPEG_ADDR_WIDTH), .MEM_WIDTH(MPEG_MEM_LENGTH)) mpeg_packet_buffer_mem0
+  // Create packet buffers //  
+  packet_buffer
+    #(
+      .PACKET_LENGTH_BYTES(MPEG_PACKET_LENGTH_BYTES),
+      .WRITE_DATA_WIDTH(MPEG_DATA_WIDTH),
+      .READ_DATA_WIDTH(MPEG_MEM_LENGTH)
+      ) 
+  mpeg_packet_buffer_mem0
     (
      .rst_n(rst_n),
      
-     .w_clk(mpeg_clk_6MHz),
-     .w_en(w_en_mem0 & word_w_en),
+     .w_clk(~mpeg_clk_6MHz),
+     .w_en(w_en_mem0 & packet_started),
      .w_addr(w_addr),
-     .w_data(mpeg_data_32_packed),
-     
-     // .r_clk(mpeg_clk_6MHz),
-     // .r_en(r_en_mem0 & word_r_en),
-     // .r_addr(mpeg_controller_addr[7:2]), // TODO: Parameterise
-     // .r_data(r_data_mem0)
+     .w_data(mpeg_data_8_d),
      
      .r_clk(sys_clk),
      .r_en(r_en_mem0 & r_en),
@@ -180,19 +178,20 @@ module mpeg_recorder
      .r_data(r_data_mem0)
      );
   
-  packet_buffer #(.ADDR_WIDTH(MPEG_ADDR_WIDTH), .MEM_WIDTH(MPEG_MEM_LENGTH)) mpeg_packet_buffer_mem1
+  packet_buffer 
+    #(
+      .PACKET_LENGTH_BYTES(MPEG_PACKET_LENGTH_BYTES),
+      .WRITE_DATA_WIDTH(MPEG_DATA_WIDTH),
+      .READ_DATA_WIDTH(MPEG_MEM_LENGTH)
+      ) 
+  mpeg_packet_buffer_mem1
     (
      .rst_n(rst_n),
      
-     .w_clk(mpeg_clk_6MHz),
-     .w_en(~w_en_mem0 & word_w_en),
+     .w_clk(~mpeg_clk_6MHz),
+     .w_en(~w_en_mem0 & packet_started),
      .w_addr(w_addr),
-     .w_data(mpeg_data_32_packed),
-     
-     // .r_clk(mpeg_clk_6MHz),
-     // .r_en(~r_en_mem0 & word_r_en),
-     // .r_addr(mpeg_controller_addr[7:2]),
-     // .r_data(r_data_mem1)   
+     .w_data(mpeg_data_8_d),
 
      .r_clk(sys_clk),
      .r_en(~r_en_mem0 & r_en),
@@ -200,59 +199,7 @@ module mpeg_recorder
      .r_data(r_data_mem1)
      );
   // //
-
-  // Byte unpacker and controller//
-
-  // Unpack data //
-  // byte_unpacker
-  //   #(.NUM_READ_BITS(), .NUM_READS())
-  // mpeg_byte_unpacker
-  //   (
-  //    .rst_n(rst_n),
-  //    .w_data(r_data),
-  //    .r_clk(mpeg_clk_6MHz),
-  //    .r_addr(mpeg_controller_addr_d[1:0]),
-  //    .r_data(mpeg_data_8_out),
-  //    .en(byte_unpacker_en)
-  //    );
-
-  // wire						 byte_unpacker_en;
-  
-  // wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]  mpeg_controller_addr;
-  // reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]   mpeg_controller_addr_d;
-
-  // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
-  //   if (~rst_n) begin
-  //     mpeg_controller_addr_d <= '0;
-  //   end
-  //   else begin
-  //     mpeg_controller_addr_d <= mpeg_controller_addr;
-  //   end
-  // end
-
-  // wire word_r_en;
-  
-  // mpeg_controller
-  //   #(.PACKET_LENGTH(MPEG_PACKET_LENGTH_BYTES))
-  // mpeg_controller_0
-  //   (
-  //    .rst_n(rst_n),
-  //    .mpeg_clk_6MHz(mpeg_clk_6MHz),
-  //    .packet_done_pulse(running & packet_done_pulse),
-  //    .r_en(byte_unpacker_en),
-  //    .r_addr(mpeg_controller_addr),
-  //    .mpeg_sync_out(mpeg_sync_out),
-  //    .mpeg_valid_out(mpeg_valid_out),
-  //    .word_r_en(word_r_en)
-  //    );
-
-  assign mpeg_clk_6MHz_out = running ? mpeg_clk_6MHz : 1'b0;
-  assign mpeg_data_8_out = mpeg_data_8;
-  assign mpeg_sync_out = mpeg_sync;
-  assign mpeg_valid_out = mpeg_valid;
-  
-  // //
-  
+    
   // running control //
   reg running;
   reg en_running;
