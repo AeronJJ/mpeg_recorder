@@ -28,7 +28,6 @@ output_files/
 ts_files/
 scripts/ignore/
 
-src/mpeg_recorder/hdl/packet_buffer.sv
 src/mpeg_recorder/hdl/byte_packer.sv
 src/mpeg_recorder/hdl/byte_unpacker.sv
 src/mpeg_recorder/hdl/mpeg_controller.sv
@@ -40,6 +39,8 @@ src/mpeg_playback/hdl/packet_buffer.sv
 src/msp2807_controller/hdl/msp2807_coord_gen.sv
 src/msp2807_controller/hdl/msp2807_spi.sv
 src/msp2807_touch_controller/hdl/msp2807_touch_spi.sv
+
+src/mpeg_recorder_avalon_mm_master_write/hdl/mpeg_irq.sv
 
 pll/pll_sim.f
 pll/pll_sim/
