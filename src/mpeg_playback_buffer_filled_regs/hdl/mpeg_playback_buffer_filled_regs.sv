@@ -31,7 +31,8 @@ module mpeg_playback_buffer_filled_regs
       buffer1_filled     <= 1'b0;
       write_accepted     <= 1'b0;
       writeresponsevalid <= 1'b0;
-    end else begin
+    end 
+    else begin
       // default: pulses low
       buffer0_filled <= 1'b0;
       buffer1_filled <= 1'b0;

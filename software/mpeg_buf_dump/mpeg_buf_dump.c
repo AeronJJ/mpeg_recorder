@@ -11,6 +11,8 @@
 #define DEVICE_NAME "mpeg_buf_dump"
 #define CLASS_NAME  "mpeg_dump"
 
+void * lwbridgebase;
+
 // FPGA IRQs:
 //   72: Idle
 //   73: Record
@@ -46,36 +48,43 @@ static uint8_t pending_mask = 0;
 
 static irqreturn_t idle_isr(int irq, void *dev_id) {
   pending_mask |= idle_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_idle),lwbridgebase+irq_idle);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t record_isr(int irq, void *dev_id) {
   pending_mask |= record_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_record),lwbridgebase+irq_record);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_isr(int irq, void *dev_id) {
   pending_mask |= playback_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_playback),lwbridgebase+irq_playback);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t buf0_isr(int irq, void *dev_id) {
   pending_mask |= buf0_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_buf0),lwbridgebase+irq_buf0);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t buf1_isr(int irq, void *dev_id) {
   pending_mask |= buf1_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_buf1),lwbridgebase+irq_buf1);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_buf0_isr(int irq, void *dev_id) {
   pending_mask |= playback_buf0_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_playback_buf0),lwbridgebase+irq_playback_buf0);
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_buf1_isr(int irq, void *dev_id) {
   pending_mask |= playback_buf1_mask;
+  iowrite32(~ioread32(lwbridgebase+irq_playback_buf1),lwbridgebase+irq_playback_buf1);
   return IRQ_HANDLED;
 }
 
@@ -100,6 +109,8 @@ static const struct file_operations mpeg_dump_fops = {
 };
 
 static int __init mpeg_dump_init(void) {
+  lwbridgebase = ioremap_nocache(0xff200000, 0x200000);
+  
   int ret;
 
   ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICE_NAME);
