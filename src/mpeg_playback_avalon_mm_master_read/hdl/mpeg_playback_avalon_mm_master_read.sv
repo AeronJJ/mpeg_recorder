@@ -22,7 +22,8 @@ module mpeg_playback_avalon_mm_master_read
    input wire                     readdatavalid,
 
    input wire                     en,
-   input wire                     packet_done, // Send new packet when pulsed
+   input wire                     packet_done, // Send new packet when pulsed,
+   output wire                    new_clk,
    output wire [DATA_WIDTH - 1:0] w_data,
    output reg [5:0]               w_addr,
    output wire                    w_en_pb0,
@@ -37,29 +38,33 @@ module mpeg_playback_avalon_mm_master_read
    output reg                     init_done    // Goes high once pb0 is filled
    );
 
+  assign new_clk = clk;
+
   // Sync bufferN_filled signals //
-  reg buffer0_filled_sync;
-  reg buffer1_filled_sync;
-  reg buffer0_filled_sync_d;
-  reg buffer1_filled_sync_d;
-  always_ff @ (posedge clk or posedge rst) begin
-    if (rst) begin
-      buffer0_filled_sync <= 1'b0;
-      buffer1_filled_sync <= 1'b0;
-      buffer0_filled_sync_d <= 1'b0;
-      buffer1_filled_sync_d <= 1'b0;
-    end
-    else begin
-      buffer0_filled_sync <= buffer0_filled_sync_d;
-      buffer1_filled_sync <= buffer1_filled_sync_d;
-      buffer0_filled_sync_d <= buffer0_filled;
-      buffer1_filled_sync_d <= buffer1_filled;
-    end
-  end
+  // reg buffer0_filled_sync;
+  // reg buffer1_filled_sync;
+  // reg buffer0_filled_sync_d;
+  // reg buffer1_filled_sync_d;
+  // always_ff @ (posedge clk or posedge rst) begin
+  //   if (rst) begin
+  //     buffer0_filled_sync <= 1'b0;
+  //     buffer1_filled_sync <= 1'b0;
+  //     buffer0_filled_sync_d <= 1'b0;
+  //     buffer1_filled_sync_d <= 1'b0;
+  //   end
+  //   else begin
+  //     buffer0_filled_sync <= buffer0_filled_sync_d;
+  //     buffer1_filled_sync <= buffer1_filled_sync_d;
+  //     buffer0_filled_sync_d <= buffer0_filled;
+  //     buffer1_filled_sync_d <= buffer1_filled;
+  //   end
+  // end
+  // Unnecessary
   // //
 
   reg [ADDR_WIDTH - 1:0] readdata_reg;
   reg                    writeready;
+  reg                    read_accepted;
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
   assign w_data = { readdata_reg[7:0],
@@ -73,19 +78,24 @@ module mpeg_playback_avalon_mm_master_read
   always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
       read <= 1'b0;
+      read_accepted <= 1'b0;
       readdata_reg <= '0;
       writeready <= 1'b0;
     end
     else if (~waitrequest && read) begin // Read accepted
       read <= 1'b0;
+      read_accepted <= 1'b1;
+    end
+    else if (read_accepted && readdatavalid) begin
       readdata_reg <= readdata;
+      read_accepted <= 1'b0;
       writeready <= 1'b1;
     end
     else if (read_ready) begin
       read <= 1'b1;
       writeready <= 1'b0;
     end
-    else begin
+    else if (current_state == s_WRITE) begin
       writeready <= 1'b0;
     end
   end // always_ff @ (posedge clk or posedge rst)
@@ -115,6 +125,8 @@ module mpeg_playback_avalon_mm_master_read
   reg [3:0]  current_state;
   reg [3:0]  next_state;
 
+  int        delay;
+  
   always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
       init_done <= 1'b0;
@@ -129,16 +141,22 @@ module mpeg_playback_avalon_mm_master_read
       pb_sel <= 1'b0;
       w_en <= 1'b0;
       w_addr <= 6'd0;
+
+      delay <= '0;
+    end // if (rst)
+    else if (delay > '0) begin
+      delay <= delay - 1'b1;
     end
     else if (en) begin
       current_state <= next_state;
       case (current_state)
         s_IDLE: begin
-          
+          delay <= 32'd5000000;          
         end
 
         s_INIT: begin
-          buffer0_fill_request_irq <= 1'b1; 
+          buffer0_fill_request_irq <= 1'b1;
+          delay <= 32'd100;
           fill_pb0 <= 1'b1; // Initialise packet buffer 0
           pb_sel <= 1'b0; // Select packet buffer 0 for writing
           init_done <= 1'b0; // Stop from playing back until packet buffer 0 filled
@@ -146,15 +164,18 @@ module mpeg_playback_avalon_mm_master_read
 
         s_INIT_WAIT: begin
           buffer0_fill_request_irq <= 1'b0;
+          delay <= 32'd50000000 * 10; // 10 second wait
         end
 
         s_REQ_BUF1: begin
           buffer1_fill_request_irq <= 1'b1;
+          delay <= 32'd100;
           address <= BUF0_BASE_ADDR;
         end
 
         s_REQ_BUF0: begin
           buffer0_fill_request_irq <= 1'b1;
+          delay <= 32'd100;
           address <= BUF1_BASE_ADDR;
         end
 
@@ -210,9 +231,9 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_INIT_WAIT: begin
-        if (buffer0_filled_sync) begin
+        // if (buffer0_filled) begin
           next_state = s_REQ_BUF1;
-        end
+        // end
       end
 
       s_REQ_BUF1: begin
