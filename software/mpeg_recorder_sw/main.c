@@ -8,6 +8,40 @@
 #include <time.h>
 #include <sys/sendfile.h>
 
+#define LW_BRIDGE_BASE  0xff200000
+#define LW_BRIDGE_SPAN  0x00200000
+
+#define REGS_OFFSET     0x00010000
+
+#define BUF0_DONE_BIT   (1 << 0)
+#define BUF1_DONE_BIT   (1 << 1)
+
+volatile uint32_t *fpga_regs = NULL;
+
+int init_fpga_regs() {
+  int fd = open("/dev/mem", O_RDWR | O_SYNC);
+  if (fd < 0) {
+    perror("open /dev/mem");
+    return -1;
+  }
+
+  void *map = mmap(NULL, LW_BRIDGE_SPAN,
+		   PROT_READ | PROT_WRITE,
+		   MAP_SHARED,
+		   fd,
+		   LW_BRIDGE_BASE);
+
+  close(fd);
+
+  if (map == MAP_FAILED) {
+    perror("mmap");
+    return -1;
+  }
+
+  fpga_regs = (volatile uint32_t *)((uint8_t*)map + REGS_OFFSET);
+  return 0;
+}
+
 #define BUF_SIZE 0x06400000
 
 static const char* buffer0_loc = "/dev/mpeg_buf0";
@@ -55,11 +89,14 @@ int main(void) {
     perror("Error opening /dev/mpeg_buf_dump");
     return 1;
   }
+
+  init_fpga_regs();
   
   printf("Waiting for interrupts...\n");
 
   int record_mode = 0;
   int playback_mode = 0;
+  int playback_mask_delay = 0;
   
   while (running) {
     ssize_t n = read(fd, &mask, 1);
@@ -70,16 +107,20 @@ int main(void) {
     }
 
     if (mask & idle_mask) {
+      printf("Idle_irq detected, Switching to Idle mode\n");
       record_mode = 0;
       playback_mode = 0;
       file_number = 0;
     }
     else if (mask & record_mask) {
+      printf("Record_irq detected, Switching to Record mode\n");
       record_mode = 1;
       playback_mode = 0;
       file_number = 0;
     }
     else if (mask & playback_mask) {
+      playback_mask_delay = mask;
+      printf("Playback_irq detected, Switching to Playback mode\n");
       record_mode = 0;
       playback_mode = 1;
       file_number = 0;
@@ -89,8 +130,12 @@ int main(void) {
 	if (record(mask)) break;
       }
       else if (playback_mode) {
-	int ret = playback(mask);
+	int ret = playback(mask | playback_mask_delay);
+	if (playback_mask_delay) {
+	  playback_mask_delay = 0;
+	}
 	if (ret == 1) { // Run out of files on USB
+	  printf("Ran out of data on USB, disabling playback mode\n");
 	  playback_mode = 0;
 	}
 	else if (ret == -1) { // Error
@@ -98,7 +143,7 @@ int main(void) {
 	}	
       }
       else {
-	continue;
+        sleep(1);
       }
     }
   }
@@ -135,43 +180,58 @@ int record(uint8_t mask) {
     if (dump_to_usb(buffer1_loc, filename)) return -1;
     file_number++;
   }
+  return 0;
 }
 
 int dump_to_usb(const char* buffer, const char* filename) {
-  printf("Dumping to USB (sendfile) %s\n", filename);
+  printf("Dumping to USB (mmap) %s\n", filename);
 
-  // Open source buffer (memory-mapped file/device)
   int mem_fd = open(buffer, O_RDONLY);
   if (mem_fd < 0) { perror("open buffer"); return -1; }
 
-  // Open destination USB file
   int usb_fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-  if (usb_fd < 0) { perror("open usb file"); return -1; }
+  if (usb_fd < 0) { perror("open usb file"); close(mem_fd); return -1; }
+
+  // Map FPGA memory
+  void *fpga_ptr = mmap(NULL, BUF_SIZE, PROT_READ, MAP_SHARED, mem_fd, 0);
+  if (fpga_ptr == MAP_FAILED) {
+    perror("mmap");
+    close(mem_fd);
+    close(usb_fd);
+    return -1;
+  }
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
 
-  off_t offset = 0;
   ssize_t total = 0;
 
   while (total < BUF_SIZE) {
-    ssize_t n = sendfile(usb_fd, mem_fd, &offset, BUF_SIZE - total);
-    if (n <= 0) {
-      perror("sendfile write");
+    ssize_t n = write(usb_fd,
+		      (char*)fpga_ptr + total,
+		      BUF_SIZE - total);
+
+    if (n < 0) {
+      perror("write");
       break;
     }
+
     total += n;
   }
+
+  // Ensure USB flush
+  fsync(usb_fd);
 
   clock_gettime(CLOCK_MONOTONIC, &t1);
 
   double dt = timespec_to_sec(&t1) - timespec_to_sec(&t0);
-  double mb = BUF_SIZE / (1024.0 * 1024.0);
+  double mb = total / (1024.0 * 1024.0);
 
   printf("Write time: %.3f s\n", dt);
   printf("Throughput: %.2f MB/s\n", mb / dt);
   printf("Transferred %zd bytes\n", total);
 
+  munmap(fpga_ptr, BUF_SIZE);
   close(mem_fd);
   close(usb_fd);
 
@@ -179,6 +239,7 @@ int dump_to_usb(const char* buffer, const char* filename) {
 }
 
 int playback(uint8_t mask) {
+  fpga_regs[0] = 0;
   if (mask & playback_buf0_mask) {
     printf("Interrupt Playback Buffer0\n");
     char filename[256];
@@ -189,6 +250,8 @@ int playback(uint8_t mask) {
 	     file_suffix);
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer0_loc, filename)) return -1;
+
+      fpga_regs[0] = BUF0_DONE_BIT;
     }
     else {
       return 1;
@@ -205,52 +268,68 @@ int playback(uint8_t mask) {
 	     file_suffix);
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer1_loc, filename)) return -1;
+
+      fpga_regs[0] = BUF1_DONE_BIT;
     }
     else {
       return 1;
     }
     file_number++;
   }
+  return 0;
 }
 
 int load_from_usb(const char* buffer, const char* filename) {
-  printf("Loading from USB (sendfile) %s\n", filename);
+  printf("Loading from USB (mmap) %s\n", filename);
 
-  // Open destination buffer (must be writable)
   int mem_fd = open(buffer, O_RDWR);
   if (mem_fd < 0) { perror("open buffer"); return -1; }
 
-  // Open source USB file
   int usb_fd = open(filename, O_RDONLY);
-  if (usb_fd < 0) { perror("open usb file"); return -1; }
+  if (usb_fd < 0) { perror("open usb file"); close(mem_fd); return -1; }
+
+  void *fpga_ptr = mmap(NULL, BUF_SIZE, PROT_WRITE, MAP_SHARED, mem_fd, 0);
+  if (fpga_ptr == MAP_FAILED) {
+    perror("mmap");
+    close(mem_fd);
+    close(usb_fd);
+    return -1;
+  }
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
 
-  off_t offset = 0;
   ssize_t total = 0;
 
   while (total < BUF_SIZE) {
-    ssize_t n = sendfile(mem_fd, usb_fd, &offset, BUF_SIZE - total);
-    if (n <= 0) {
-      perror("sendfile read");
+    ssize_t n = read(usb_fd,
+		     (char*)fpga_ptr + total,
+		     BUF_SIZE - total);
+
+    if (n < 0) {
+      perror("read");
       break;
     }
+
+    if (n == 0)
+      break;  // EOF
+
     total += n;
   }
+
+  // Ensure writes hit memory 
+  msync(fpga_ptr, BUF_SIZE, MS_SYNC);
 
   clock_gettime(CLOCK_MONOTONIC, &t1);
 
   double dt = timespec_to_sec(&t1) - timespec_to_sec(&t0);
-  double mb = BUF_SIZE / (1024.0 * 1024.0);
+  double mb = total / (1024.0 * 1024.0);
 
   printf("Read time: %.3f s\n", dt);
   printf("Throughput: %.2f MB/s\n", mb / dt);
   printf("Transferred %zd bytes\n", total);
 
-  // Ensure data is visible to hardware
-  fsync(mem_fd);
-
+  munmap(fpga_ptr, BUF_SIZE);
   close(mem_fd);
   close(usb_fd);
 
