@@ -160,14 +160,16 @@ module mpeg_top_level
   wire [MPEG_DATA_WIDTH - 1:0]  mpeg_data_8_playback;
   wire                          mpeg_sync_playback;
   wire                          mpeg_valid_playback;
-  
+
+  wire                          clk_playback;
+    
   mpeg_playback
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
       )
   mpeg_mpeg_playback_0
     (
-     .sys_clk(sys_clk_100MHz),
+     .sys_clk(clk_playback),
      .rst_n(rst_n_gated),
      .pb_w_data(pb_w_data),
      .pb_w_addr(pb_w_addr),
@@ -248,7 +250,9 @@ module mpeg_top_level
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_data  ( pb_w_data), //  mpeg_playback_avalon_mm_master_read_0_w_interface.w_data
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_addr  ( pb_w_addr), // .w_addr
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb0( pb0_w_en), // .w_en_pb0
-     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb1( pb1_w_en)  // .w_en_pb1
+     .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb1( pb1_w_en),  // .w_en_pb1
+     .mpeg_recorder_mode_select_interface_0_mode_mode           ( mode),
+     .mpeg_playback_avalon_mm_master_read_0_new_clk_clk         ( clk_playback) // mpeg_playback_avalon_mm_master_read_0_new_clk.clk
      );
   
 endmodule // mpeg_top_level
