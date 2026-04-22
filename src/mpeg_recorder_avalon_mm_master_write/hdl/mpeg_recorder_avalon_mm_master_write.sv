@@ -25,11 +25,35 @@ module mpeg_recorder_avalon_mm_master_write
    output wire [5:0]              r_addr,
    output reg                     r_en,
 
-   output reg                     buffer0_done_irq,
-   output reg                     buffer1_done_irq
+   output wire                    buffer0_done_irq,
+   output wire                    buffer1_done_irq,
+   input wire                     buffer0_done_irq_received,
+   input wire                     buffer1_done_irq_received
    );
-  // TODO: Update with response signal from avalon intefrace
-  // TODO: Update with irq received signal from HPS
+  // TODO: Update with response signal from avalon interface
+
+  // Instantiate IRQs //
+  reg en_buffer0_done_irq;
+  mpeg_irq mpeg_irq_buffer0_irq_inst
+    (
+     .clk(clk),
+     .rst_n(rst_n),
+     .en_interrupt(en_buffer0_done_irq),
+     .irq(buffer0_done_irq),
+     .irq_reset(buffer0_done_irq_received)
+     );
+
+  reg en_buffer1_done_irq;
+  mpeg_irq mpeg_irq_buffer1_irq_inst
+    (
+     .clk(clk),
+     .rst_n(rst_n),
+     .en_interrupt(en_buffer1_done_irq),
+     .irq(buffer1_done_irq),
+     .irq_reset(buffer1_done_irq_received)
+     );
+  // //
+  
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
   assign writedata = { r_data[7:0], 
@@ -53,19 +77,8 @@ module mpeg_recorder_avalon_mm_master_write
   end // always @ (posedge clk or posedge rst)
   // //
 
-  // Synchronise packet_done into clk domain //
-  reg packet_done_sync;
-  reg packet_done_sync_r;
-  always_ff @ (posedge clk or posedge rst) begin
-    if (rst) begin
-      packet_done_sync <= 1'b0;
-      packet_done_sync_r <= 1'b0;      
-    end
-    else begin
-      packet_done_sync_r <= packet_done;
-      packet_done_sync <= packet_done_sync_r;
-    end
-  end
+  // Synchronise packet_done into clk domain // Update: sync is now done in mpeg_recorder module
+  wire packet_done_sync = packet_done;
   // //
 
   // State Machine //
@@ -90,8 +103,8 @@ module mpeg_recorder_avalon_mm_master_write
       r_addr_r <= '0;
       address <= BUF0_BASE_ADDR;
       writeready <= 1'b0;
-      buffer0_done_irq <= 1'b0;
-      buffer1_done_irq <= 1'b0;
+      en_buffer0_done_irq <= 1'b0;
+      en_buffer1_done_irq <= 1'b0;
     end
     else if (en) begin
       current_state <= next_state;
@@ -100,15 +113,13 @@ module mpeg_recorder_avalon_mm_master_write
           r_en <= 1'b0;
           r_addr_r <= '0;
           writeready <= 1'b0;
-          // buffer0_done_irq <= 1'b0;
-          // buffer1_done_irq <= 1'b0;
+          en_buffer0_done_irq <= 1'b0;
+          en_buffer1_done_irq <= 1'b0;
         end
         
         s_READ: begin
           r_en <= 1'b1;
           writeready <= 1'b0;
-          buffer0_done_irq <= 1'b0; // Increase time of interrupt pulse by waiting for next packet
-          buffer1_done_irq <= 1'b0;
         end
         
         s_WRITE: begin
@@ -123,11 +134,11 @@ module mpeg_recorder_avalon_mm_master_write
         s_DONE: begin
           r_addr_r <= r_addr_r + 1'b1;
           if (address == BUF1_BASE_ADDR - 32'h28) begin // Stop just short to ensure alignment of n*47 words
-            buffer0_done_irq <= 1'b1;
+            en_buffer0_done_irq <= 1'b1;
             address <= BUF1_BASE_ADDR;
           end
           else if (address == BUF1_BASE_ADDR + BUFFER_LENGTH - 32'h28) begin
-            buffer1_done_irq <= 1'b1;
+            en_buffer1_done_irq <= 1'b1;
             address <= BUF0_BASE_ADDR;
           end
           else begin
@@ -145,8 +156,8 @@ module mpeg_recorder_avalon_mm_master_write
       r_addr_r <= '0;
       writeready <= 1'b0;
       address <= BUF0_BASE_ADDR;
-      buffer0_done_irq <= 1'b0;
-      buffer1_done_irq <= 1'b0;
+      en_buffer0_done_irq <= 1'b0;
+      en_buffer1_done_irq <= 1'b0;
     end
   end // always_ff @ (posedge clk or posedge rst)
 
