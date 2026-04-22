@@ -107,7 +107,7 @@ module mpeg_recorder_avalon_mm_master_write
         s_READ: begin
           r_en <= 1'b1;
           writeready <= 1'b0;
-          buffer0_done_irq <= 1'b0;
+          buffer0_done_irq <= 1'b0; // Increase time of interrupt pulse by waiting for next packet
           buffer1_done_irq <= 1'b0;
         end
         
@@ -144,7 +144,7 @@ module mpeg_recorder_avalon_mm_master_write
       r_en <= 1'b0;
       r_addr_r <= '0;
       writeready <= 1'b0;
-      address <= 32'h32000000;
+      address <= BUF0_BASE_ADDR;
       buffer0_done_irq <= 1'b0;
       buffer1_done_irq <= 1'b0;
     end
