@@ -130,8 +130,13 @@ static int __init mpeg_dump_init(void) {
 }
 
 static void __exit mpeg_dump_exit(void) {
+  free_irq(irq_idle, NULL);
+  free_irq(irq_record, NULL);
+  free_irq(irq_playback, NULL);
   free_irq(irq_buf0, NULL);
   free_irq(irq_buf1, NULL);
+  free_irq(irq_playback_buf0, NULL);
+  free_irq(irq_playback_buf1, NULL);
   device_destroy(mpeg_dump_class, dev_num);
   class_destroy(mpeg_dump_class);
   cdev_del(&mpeg_dump_cdev);
