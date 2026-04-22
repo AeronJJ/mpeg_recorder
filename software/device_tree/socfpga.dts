@@ -655,6 +655,7 @@
 
 		lwhps2fpga: bridge@ff200000 {
   			compatible = "altr,socfpga-lwhps2fpga-bridge";
+			label = "lwhps2fpga";
 			reg = <0xff200000 0x00200000>;   // LW bridge span (2 MB typical)
 			#address-cells = <1>;
 			#size-cells = <1>;
