@@ -16,6 +16,20 @@ module msp2807_touch_controller
     output wire	     touch_detected
    );
 
+  reg touch_irq_sync_d;
+  reg touch_irq_sync;
+
+  always_ff @ (posedge sys_clk_1MHz or negedge rst_n) begin
+    if (~rst_n) begin
+      touch_irq_sync_d <= 1'b0;
+      touch_irq_sync <= 1'b0;
+    end
+    else begin
+      touch_irq_sync_d <= touch_irq_in;
+      touch_irq_sync <= touch_irq_sync_d;
+    end
+  end
+
    reg touch_detected_delayed;
    assign touch_detected = touch_detected_delayed;
    reg touch_detected_internal; // Delay output of touch detection to allow math to propagate
@@ -64,7 +78,7 @@ module msp2807_touch_controller
       .en(touch_en),
       .data_in(touch_data_in),
       .sdo_in(touch_sdo_in),
-      .irq_in(touch_irq_in),
+      .irq_in(touch_irq_sync),
       .busy(touch_busy),
       .data_out(touch_data_out),
       .cs_out(touch_cs_out),
@@ -169,7 +183,7 @@ module msp2807_touch_controller
       next_state = current_state;
       case (current_state)
 	s_IDLE: begin
-	   if (~touch_busy && ~touch_en && ~touch_irq_in) begin
+	   if (~touch_busy && ~touch_en && ~touch_irq_sync) begin
 	      next_state = s_READ_X;
 	   end
 	end
