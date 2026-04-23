@@ -1,3 +1,4 @@
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -7,6 +8,7 @@
 #include <linux/uaccess.h>
 #include <linux/wait.h>
 #include <linux/spinlock.h>
+#include <asm/io.h>
 
 #define DEVICE_NAME "mpeg_buf_dump"
 #define CLASS_NAME  "mpeg_dump"
@@ -48,43 +50,43 @@ static uint8_t pending_mask = 0;
 
 static irqreturn_t idle_isr(int irq, void *dev_id) {
   pending_mask |= idle_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_idle),lwbridgebase+irq_idle);
+  iowrite32(~ioread32(lwbridgebase+(irq_idle<<2)),lwbridgebase+(irq_idle<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t record_isr(int irq, void *dev_id) {
   pending_mask |= record_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_record),lwbridgebase+irq_record);
+  iowrite32(~ioread32(lwbridgebase+(irq_record<<2)),lwbridgebase+(irq_record<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_isr(int irq, void *dev_id) {
   pending_mask |= playback_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_playback),lwbridgebase+irq_playback);
+  iowrite32(~ioread32(lwbridgebase+(irq_playback<<2)),lwbridgebase+(irq_playback<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t buf0_isr(int irq, void *dev_id) {
   pending_mask |= buf0_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_buf0),lwbridgebase+irq_buf0);
+  iowrite32(~ioread32(lwbridgebase+(irq_buf0<<2)),lwbridgebase+(irq_buf0<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t buf1_isr(int irq, void *dev_id) {
   pending_mask |= buf1_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_buf1),lwbridgebase+irq_buf1);
+  iowrite32(~ioread32(lwbridgebase+(irq_buf1<<2)),lwbridgebase+(irq_buf1<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_buf0_isr(int irq, void *dev_id) {
   pending_mask |= playback_buf0_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_playback_buf0),lwbridgebase+irq_playback_buf0);
+  iowrite32(~ioread32(lwbridgebase+(irq_playback_buf0<<2)),lwbridgebase+(irq_playback_buf0<<2));
   return IRQ_HANDLED;
 }
 
 static irqreturn_t playback_buf1_isr(int irq, void *dev_id) {
   pending_mask |= playback_buf1_mask;
-  iowrite32(~ioread32(lwbridgebase+irq_playback_buf1),lwbridgebase+irq_playback_buf1);
+  iowrite32(~ioread32(lwbridgebase+(irq_playback_buf1<<2)),lwbridgebase+(irq_playback_buf1<<2));
   return IRQ_HANDLED;
 }
 
