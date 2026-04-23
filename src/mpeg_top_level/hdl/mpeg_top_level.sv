@@ -63,7 +63,10 @@ module mpeg_top_level
    output                              HPS_DDR3_RAS_N,
    output                              HPS_DDR3_RESET_N,
    input                               HPS_DDR3_RZQ,
-   output                              HPS_DDR3_WE_N
+   output                              HPS_DDR3_WE_N,
+
+   output wire [6:0]                   led_test_signal,
+   input wire [3:0]                    mode_switch_test
    );
 
   // PLL //
@@ -118,10 +121,10 @@ module mpeg_top_level
   wire        r_en;
   wire        packet_done;
 
-  wire        mpeg_clk_6MHz_recorder;
-  wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_recorder;
-  wire                         mpeg_sync_recorder;
-  wire                         mpeg_valid_recorder;
+  wire        mpeg_clk_6MHz_recorder = mpeg_clk_6MHz;
+  wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_recorder = mpeg_data_8;
+  wire                         mpeg_sync_recorder = mpeg_sync;
+  wire                         mpeg_valid_recorder = mpeg_valid;
     
   mpeg_recorder
     #(
@@ -137,10 +140,6 @@ module mpeg_top_level
      .sys_clk(sys_clk_100MHz),
      .start(~start_sync),
      .stop(~stop_sync),
-     .mpeg_clk_6MHz_out(mpeg_clk_6MHz_recorder),
-     .mpeg_data_8_out(mpeg_data_8_recorder),
-     .mpeg_sync_out(mpeg_sync_recorder),
-     .mpeg_valid_out(mpeg_valid_recorder),
      .r_data_32(r_data_32),
      .r_addr(r_addr),
      .r_en(r_en),
@@ -195,12 +194,14 @@ module mpeg_top_level
 
   // LCD //
   wire [3:0] mode; // Onehot (playback, record, passthrough, idle)
+  assign mode = mode_switch_test;
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
      .sys_clk_100MHz(sys_clk_100MHz),
      .sys_clk_1MHz(sys_clk_1MHz),
-     .mode(mode),
+     // .mode(mode),
+     .mode(),
      .lcd_cs_out(lcd_cs_out),
      .lcd_dcrs_out(lcd_dcrs_out),
      .lcd_sdi_out(lcd_sdi_out),
@@ -252,7 +253,8 @@ module mpeg_top_level
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb0( pb0_w_en), // .w_en_pb0
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb1( pb1_w_en),  // .w_en_pb1
      .mpeg_recorder_mode_select_interface_0_mode_mode           ( mode),
-     .mpeg_playback_avalon_mm_master_read_0_new_clk_clk         ( clk_playback) // mpeg_playback_avalon_mm_master_read_0_new_clk.clk
+     .mpeg_playback_avalon_mm_master_read_0_new_clk_clk         ( clk_playback), // mpeg_playback_avalon_mm_master_read_0_new_clk.clk
+     .mpeg_irq_handler_0_led_test_signal_led_test_signal        ( led_test_signal) 
      );
   
 endmodule // mpeg_top_level
