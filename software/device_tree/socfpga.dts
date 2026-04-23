@@ -43,6 +43,28 @@
 		};
 	};
 
+	fpga-region {
+    	    compatible = "fpga-region";
+
+    	    fpga-bridges = <&lwhps2fpga>;
+
+    	    #address-cells = <1>;
+    	    #size-cells = <1>;
+    	    ranges;
+
+    	    base_fpga_region {
+                #address-cells = <1>;
+        	#size-cells = <1>;
+
+        	ranges = <0x0 0xFF200000 0x00200000>;
+
+        	buffer_filled_regs@10000 {
+            	    compatible = "mpeg_recorder,buffer_filled_regs";
+            	    reg = <0x00010000 0x1000>;
+        	};
+    	    };
+	};
+
 	cpus {
 		#address-cells = <0x01>;
 		#size-cells = <0x00>;
@@ -652,25 +674,14 @@
 			reset-names = "hps2fpga";
 			clocks = <0x03>;
 		};
-
-		lwhps2fpga: bridge@ff200000 {
-  			compatible = "altr,socfpga-lwhps2fpga-bridge";
+		
+		lwhps2fpga: fpgabridge@1 {
+			compatible = "altr,socfpga-lwhps2fpga-bridge";
 			label = "lwhps2fpga";
-			reg = <0xff200000 0x00200000>;   // LW bridge span (2 MB typical)
-			#address-cells = <1>;
-			#size-cells = <1>;
-			ranges = <0x00000000 0xff200000 0x00200000>;
-
 			resets = <0x21 0x61>;
 			reset-names = "lwhps2fpga";
 			clocks = <0x03>;
-
-			status = "okay";
-
-			buffer_filled_regs@10000 {
-  				compatible = "mpeg_recorder,buffer_filled_regs";
-				reg = <0x00010000 0x1000>;
-			};				
+			bridge-enable = <1>;
 		};
 
 		fpgabridge@2 {
