@@ -38,7 +38,7 @@ int init_fpga_regs() {
     return -1;
   }
 
-  fpga_regs = (volatile uint32_t *)((uint8_t*)map + REGS_OFFSET);
+  fpga_regs = (volatile uint32_t *)map;//(volatile uint32_t *)((uint8_t*)map + REGS_OFFSET);
   return 0;
 }
 
@@ -239,7 +239,7 @@ int dump_to_usb(const char* buffer, const char* filename) {
 }
 
 int playback(uint8_t mask) {
-  fpga_regs[0] = 0;
+  fpga_regs[REGS_OFFSET] = 0;
   if (mask & playback_buf0_mask) {
     printf("Interrupt Playback Buffer0\n");
     char filename[256];
@@ -251,7 +251,7 @@ int playback(uint8_t mask) {
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer0_loc, filename)) return -1;
 
-      fpga_regs[0] = BUF0_DONE_BIT;
+      fpga_regs[REGS_OFFSET] = BUF0_DONE_BIT;
     }
     else {
       return 1;
@@ -269,7 +269,7 @@ int playback(uint8_t mask) {
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer1_loc, filename)) return -1;
 
-      fpga_regs[0] = BUF1_DONE_BIT;
+      fpga_regs[REGS_OFFSET] = BUF1_DONE_BIT;
     }
     else {
       return 1;
