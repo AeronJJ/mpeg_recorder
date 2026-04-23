@@ -12,7 +12,7 @@ module mpeg_playback_buffer_filled_regs
    output wire [1:0] writeresponse,
    input wire        read,
    output reg [31:0] readdata,
-   output wire       readdatavalid,
+   output reg        readdatavalid,
 
    output reg        buffer0_filled,
    output reg        buffer1_filled
@@ -56,15 +56,25 @@ module mpeg_playback_buffer_filled_regs
     end
   end
 
-  // READ LOGIC (pure combinational)
-  always_comb begin
-    case (address)
-      2'd0: readdata = control_reg;
-      default: readdata = 32'h0;
-    endcase
-  end
-
-  assign readdatavalid = read;
+  // READ LOGIC
+  always_ff @ (posedge clk or posedge rst) begin
+    if (rst) begin
+      readdata <= '0;
+      readdatavalid <= 1'b0;
+    end
+    else if (read) begin
+      if (address == 2'd0) begin
+        readdata <= control_reg;
+      end
+      else begin
+        readdata <= '0;
+      end
+      readdatavalid <= 1'b1;
+    end
+    else begin
+      readdatavalid <= 1'b0;
+    end
+  end // always_ff @ (posedge clk or posedge rst)
 
 endmodule
 `default_nettype wire
