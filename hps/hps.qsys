@@ -102,6 +102,102 @@
          type = "String";
       }
    }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
+   element hps
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Cyclone V";
+         type = "String";
+      }
+   }
    element hps_0
    {
       datum _sortIndex
@@ -111,6 +207,22 @@
       }
    }
    element hps_0.f2h_sdram0_data
+   {
+      datum baseAddress
+      {
+         value = "0";
+         type = "String";
+      }
+   }
+   element mpeg_irq_handler_0
+   {
+      datum _sortIndex
+      {
+         value = "6";
+         type = "int";
+      }
+   }
+   element mpeg_irq_handler_0.avalon_slave_0
    {
       datum baseAddress
       {
@@ -191,6 +303,11 @@
    type="interrupt"
    dir="start" />
  <interface name="memory" internal="hps_0.memory" type="conduit" dir="end" />
+ <interface
+   name="mpeg_irq_handler_0_led_test_signal"
+   internal="mpeg_irq_handler_0.led_test_signal"
+   type="conduit"
+   dir="end" />
  <interface
    name="mpeg_playback_avalon_mm_master_read_0_en"
    internal="mpeg_playback_avalon_mm_master_read_0.en"
@@ -765,6 +882,11 @@
   <parameter name="use_default_mpu_clk" value="true" />
  </module>
  <module
+   name="mpeg_irq_handler_0"
+   kind="mpeg_irq_handler"
+   version="1.0"
+   enabled="1" />
+ <module
    name="mpeg_playback_avalon_mm_master_read_0"
    kind="mpeg_playback_avalon_mm_master_read"
    version="1.0"
@@ -822,6 +944,15 @@
   <parameter name="defaultConnection" value="false" />
  </connection>
  <connection
+   kind="avalon"
+   version="22.1"
+   start="hps_0.h2f_lw_axi_master"
+   end="mpeg_irq_handler_0.avalon_slave_0">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x0000" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
    kind="clock"
    version="22.1"
    start="clk_0.clk"
@@ -845,6 +976,11 @@
    kind="clock"
    version="22.1"
    start="clk_0.clk"
+   end="mpeg_irq_handler_0.clock" />
+ <connection
+   kind="clock"
+   version="22.1"
+   start="clk_0.clk"
    end="hps_0.f2h_sdram0_clock" />
  <connection
    kind="clock"
@@ -861,6 +997,39 @@
    version="22.1"
    start="mpeg_playback_avalon_mm_master_read_0.buffer_filled"
    end="mpeg_playback_buffer_filled_regs_0.buffer_filled">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection
+   kind="conduit"
+   version="22.1"
+   start="mpeg_irq_handler_0.irq_mode_reset"
+   end="mpeg_recorder_mode_select_interface_0.irq_mode_reset">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection
+   kind="conduit"
+   version="22.1"
+   start="mpeg_playback_avalon_mm_master_read_0.irq_playback_reset"
+   end="mpeg_irq_handler_0.irq_playback_buf_reset">
+  <parameter name="endPort" value="" />
+  <parameter name="endPortLSB" value="0" />
+  <parameter name="startPort" value="" />
+  <parameter name="startPortLSB" value="0" />
+  <parameter name="width" value="0" />
+ </connection>
+ <connection
+   kind="conduit"
+   version="22.1"
+   start="mpeg_recorder_avalon_mm_master_write_0.irq_reset"
+   end="mpeg_irq_handler_0.irq_buf_reset">
   <parameter name="endPort" value="" />
   <parameter name="endPortLSB" value="0" />
   <parameter name="startPort" value="" />
@@ -921,6 +1090,11 @@
    version="22.1"
    start="hps_0.h2f_reset"
    end="mpeg_recorder_avalon_mm_master_write_0.reset" />
+ <connection
+   kind="reset"
+   version="22.1"
+   start="hps_0.h2f_reset"
+   end="mpeg_irq_handler_0.reset" />
  <connection
    kind="reset"
    version="22.1"
