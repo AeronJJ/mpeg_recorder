@@ -10,6 +10,7 @@ module mpeg_playback_avalon_mm_master_read
     parameter BUFFER_OFFSET = 32'd36 // offset to account for non-perfect buffer size
     )
   (
+   /* verilator lint_off UNUSEDSIGNAL */
    input wire                     clk,
    input wire                     rst,         // Active high
 
@@ -39,6 +40,21 @@ module mpeg_playback_avalon_mm_master_read
 
    output reg                     init_done    // Goes high once pb0 is filled
    );
+
+  // Synchronise packet done in //
+  reg packet_done_d;
+  reg packet_done_sync;
+  always_ff @ (posedge clk or posedge rst) begin
+    if (rst) begin
+      packet_done_d <= 1'b0;
+      packet_done_sync <= 1'b0;
+    end
+    else begin
+      packet_done_d <= packet_done;
+      packet_done_sync <= packet_done_d;
+    end
+  end  
+  // //
 
   assign new_clk = clk;
 
@@ -127,10 +143,11 @@ module mpeg_playback_avalon_mm_master_read
   reg [3:0]  current_state;
   reg [3:0]  next_state;
 
-  int        delay;
+  // int        delay;
   
   always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
+      current_state <= s_IDLE;
       init_done <= 1'b0;
       fill_pb0 <= 1'b0;
       
@@ -144,21 +161,20 @@ module mpeg_playback_avalon_mm_master_read
       w_en <= 1'b0;
       w_addr <= 6'd0;
 
-      delay <= '0;
+      // delay <= '0;
     end // if (rst)
-    else if (delay > '0) begin
-      delay <= delay - 1'b1;
-    end
+    // else if (delay > '0) begin
+    //   delay <= delay - 1'b1;
+    // end
     else if (en) begin
       current_state <= next_state;
       case (current_state)
         s_IDLE: begin
-          delay <= 32'd5000000;          
+          // delay <= 32'd5000000;          
         end
 
         s_INIT: begin
           en_buffer0_fill_request_irq <= 1'b1;
-          delay <= 32'd100;
           fill_pb0 <= 1'b1; // Initialise packet buffer 0
           pb_sel <= 1'b0; // Select packet buffer 0 for writing
           init_done <= 1'b0; // Stop from playing back until packet buffer 0 filled
@@ -166,7 +182,7 @@ module mpeg_playback_avalon_mm_master_read
 
         s_INIT_WAIT: begin
           en_buffer0_fill_request_irq <= 1'b0;
-          delay <= 32'd50000000 * 10; // 10 second wait
+          // delay <= 32'd50000000 * 10; // 10 second wait
         end
 
         s_REQ_BUF1: begin
@@ -210,6 +226,10 @@ module mpeg_playback_avalon_mm_master_read
         s_STOP: begin
           
         end
+
+        default: begin
+
+        end
       endcase
     end
     else begin
@@ -231,9 +251,9 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_INIT_WAIT: begin
-        // if (buffer0_filled) begin
+        if (buffer0_filled) begin
           next_state = s_REQ_BUF1;
-        // end
+        end
       end
 
       s_REQ_BUF1: begin
@@ -245,7 +265,7 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_WAIT: begin
-        if (packet_done || fill_pb0) begin
+        if (packet_done_sync || fill_pb0) begin
           next_state = s_READ;
         end
       end          
@@ -261,7 +281,7 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_WRITE: begin
-        if (w_addr < 6'd188) begin
+        if (w_addr < 6'd47) begin
           next_state = s_READ;
         end
         else begin
@@ -285,7 +305,11 @@ module mpeg_playback_avalon_mm_master_read
 
       s_STOP: begin
         next_state = s_IDLE;
-      end      
+      end  
+
+      default: begin
+        next_state = s_IDLE;
+      end          
     endcase
   end
   
