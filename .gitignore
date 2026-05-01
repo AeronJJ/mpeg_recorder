@@ -42,5 +42,8 @@ src/msp2807_touch_controller/hdl/msp2807_touch_spi.sv
 
 src/mpeg_recorder_avalon_mm_master_write/hdl/mpeg_irq.sv
 
+src/mpeg_playback_avalon_mm_master_read/hdl/mpeg_irq.sv
+src/mpeg_playback/hdl/packet_buffer_playback.sv
+
 pll/pll_sim.f
 pll/pll_sim/
