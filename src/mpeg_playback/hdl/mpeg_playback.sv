@@ -30,13 +30,13 @@ module mpeg_playback
    );
   
   // Create packet buffers //
-  wire [MPEG_MEM_LENGTH - 1:0] r_data;
-  wire [MPEG_MEM_LENGTH - 1:0] r_data_mem0;
-  wire [MPEG_MEM_LENGTH - 1:0] r_data_mem1;
+  wire                         r_en;
+  wire [MPEG_DATA_WIDTH - 1:0] r_data_mem0;
+  wire [MPEG_DATA_WIDTH - 1:0] r_data_mem1;
 
   reg                          r_data_switch;
   
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       r_data_switch <= 1'b0;
     end
@@ -44,9 +44,16 @@ module mpeg_playback
       r_data_switch <= ~r_data_switch;
     end
   end
-  assign r_data = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
   
-  packet_buffer #(.ADDR_WIDTH(MPEG_ADDR_WIDTH), .MEM_WIDTH(MPEG_MEM_LENGTH)) mpeg_packet_buffer_pb0
+  assign mpeg_data_8_out = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
+
+  packet_buffer_playback 
+    #(
+      .PACKET_LENGTH_BYTES(MPEG_PACKET_LENGTH_BYTES),
+      .WRITE_DATA_WIDTH(MPEG_MEM_LENGTH),
+      .READ_DATA_WIDTH(MPEG_DATA_WIDTH)
+      )
+  mpeg_packet_buffer_pb0
     (
      .rst_n(rst_n),
      
@@ -55,13 +62,19 @@ module mpeg_playback
      .w_addr(pb_w_addr),
      .w_data(pb_w_data),
      
-     .r_clk(mpeg_clk_6MHz),
-     .r_en(pb_r_sel & word_r_en),
-     .r_addr(mpeg_controller_addr[7:2]), // TODO: Parameterise
+     .r_clk(~mpeg_clk_6MHz),
+     .r_en(pb_r_sel & r_en),
+     .r_addr(mpeg_controller_addr),
      .r_data(r_data_mem0)
      );
-  
-  packet_buffer #(.ADDR_WIDTH(MPEG_ADDR_WIDTH), .MEM_WIDTH(MPEG_MEM_LENGTH)) mpeg_packet_buffer_pb1
+
+  packet_buffer_playback 
+    #(
+      .PACKET_LENGTH_BYTES(MPEG_PACKET_LENGTH_BYTES),
+      .WRITE_DATA_WIDTH(MPEG_MEM_LENGTH),
+      .READ_DATA_WIDTH(MPEG_DATA_WIDTH)
+      )
+  mpeg_packet_buffer_pb1
     (
      .rst_n(rst_n),
      
@@ -70,45 +83,17 @@ module mpeg_playback
      .w_addr(pb_w_addr),
      .w_data(pb_w_data),
      
-     .r_clk(mpeg_clk_6MHz),
-     .r_en(~pb_r_sel & word_r_en),
-     .r_addr(mpeg_controller_addr[7:2]),
+     .r_clk(~mpeg_clk_6MHz),
+     .r_en(~pb_r_sel & r_en),
+     .r_addr(mpeg_controller_addr),
      .r_data(r_data_mem1)
      );
-  // //
 
-  // Byte unpacker and controller//
+  // MPEG controller//
 
-  // Unpack data //
-  byte_unpacker
-    #(.NUM_READ_BITS(), .NUM_READS())
-  mpeg_byte_unpacker
-    (
-     .rst_n(rst_n),
-     .w_data(r_data),
-     .r_clk(mpeg_clk_6MHz),
-     .r_addr(mpeg_controller_addr_d[1:0]),
-     .r_data(mpeg_data_8_out),
-     .en(byte_unpacker_en)
-     );
-
-  wire byte_unpacker_en;
-  /* verilator lint_off UNUSEDSIGNAL */
   wire [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0] mpeg_controller_addr;
-  reg [$clog2(MPEG_PACKET_LENGTH_BYTES) - 1:0]  mpeg_controller_addr_d;
-  /* verilator lint_on UNUSEDSIGNAL */
-  
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
-    if (~rst_n) begin
-      mpeg_controller_addr_d <= '0;
-    end
-    else begin
-      mpeg_controller_addr_d <= mpeg_controller_addr;
-    end
-  end
 
-  wire word_r_en;
-  
+  /* verilator lint_off PINCONNECTEMPTY */
   mpeg_controller
     #(.PACKET_LENGTH(MPEG_PACKET_LENGTH_BYTES))
   mpeg_controller_0
@@ -116,11 +101,11 @@ module mpeg_playback
      .rst_n(rst_n),
      .mpeg_clk_6MHz(mpeg_clk_6MHz),
      .packet_done_pulse(running & mpeg_sync),
-     .r_en(byte_unpacker_en),
+     .r_en(r_en),
      .r_addr(mpeg_controller_addr),
      .mpeg_sync_out(mpeg_sync_out),
      .mpeg_valid_out(mpeg_valid_out),
-     .word_r_en(word_r_en)
+     .word_r_en()
      );
 
   assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
@@ -132,7 +117,7 @@ module mpeg_playback
   reg  packet_done_d;
   assign packet_done = (packet_done_r ^ packet_done_d) & packet_done_r;
   assign packet_done_r = (mpeg_controller_addr[7:2] == MPEG_ADDR_WIDTH'(MPEG_PACKET_LENGTH)) ? 1'b1 : 1'b0;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       packet_done_d <= 1'b0;
     end
@@ -141,7 +126,7 @@ module mpeg_playback
     end
   end
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       packet_done_pulse <= 1'b0;
     end
