@@ -17,6 +17,7 @@
 #define BUF1_DONE_BIT   (1 << 1)
 
 volatile uint32_t *fpga_regs = NULL;
+volatile uint32_t *map = NULL;
 
 int init_fpga_regs() {
   int fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -25,11 +26,11 @@ int init_fpga_regs() {
     return -1;
   }
 
-  void *map = mmap(NULL, LW_BRIDGE_SPAN,
-		   PROT_READ | PROT_WRITE,
-		   MAP_SHARED,
-		   fd,
-		   LW_BRIDGE_BASE);
+  map = mmap(NULL, LW_BRIDGE_SPAN,
+	     PROT_READ | PROT_WRITE,
+	     MAP_SHARED,
+	     fd,
+	     LW_BRIDGE_BASE);
 
   close(fd);
 
@@ -38,7 +39,8 @@ int init_fpga_regs() {
     return -1;
   }
 
-  fpga_regs = (volatile uint32_t *)map;//(volatile uint32_t *)((uint8_t*)map + REGS_OFFSET);
+  fpga_regs = (uint32_t *)((char *)map + REGS_OFFSET);
+  /* fpga_regs = (volatile uint32_t *)map;//(volatile uint32_t *)((uint8_t*)map + REGS_OFFSET); */
   return 0;
 }
 
@@ -239,7 +241,7 @@ int dump_to_usb(const char* buffer, const char* filename) {
 }
 
 int playback(uint8_t mask) {
-  fpga_regs[REGS_OFFSET] = 0;
+  fpga_regs[0] = 0;
   if (mask & playback_buf0_mask) {
     printf("Interrupt Playback Buffer0\n");
     char filename[256];
@@ -251,7 +253,7 @@ int playback(uint8_t mask) {
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer0_loc, filename)) return -1;
 
-      fpga_regs[REGS_OFFSET] = BUF0_DONE_BIT;
+      fpga_regs[0] = BUF0_DONE_BIT;
     }
     else {
       return 1;
@@ -269,7 +271,7 @@ int playback(uint8_t mask) {
     if (access(filename, F_OK) == 0) {
       if (load_from_usb(buffer1_loc, filename)) return -1;
 
-      fpga_regs[REGS_OFFSET] = BUF1_DONE_BIT;
+      fpga_regs[0] = BUF1_DONE_BIT;
     }
     else {
       return 1;
