@@ -17,7 +17,7 @@ module mpeg_playback
    input wire                          pb0_w_en,
    input wire                          pb1_w_en,
 
-   input wire                          running, // Connect to init_done
+   input wire                          running,   // Connect to init_done
    output reg                          packet_done_pulse,
    
    input wire                          mpeg_clk_6MHz,
@@ -25,9 +25,24 @@ module mpeg_playback
 
    output wire                         mpeg_clk_6MHz_out,
    output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
-   output wire                         mpeg_sync_out,
-   output wire                         mpeg_valid_out
+   output reg                          mpeg_sync_out,
+   output reg                          mpeg_valid_out
    );
+
+  // Delay sync_out and valid_out //
+  wire mpeg_sync_out_d;
+  wire mpeg_valid_out_d;
+  always_ff @ (negedge mpeg_clk_6MHz_out or negedge rst_n) begin
+    if (~rst_n) begin
+      mpeg_sync_out <= 1'b0;
+      mpeg_valid_out <= 1'b0;
+    end
+    else begin
+      mpeg_sync_out <= mpeg_sync_out_d;
+      mpeg_valid_out <= mpeg_valid_out_d;
+    end
+  end
+  // // 
   
   // Create packet buffers //
   wire                         r_en;
@@ -103,8 +118,8 @@ module mpeg_playback
      .packet_done_pulse(running & mpeg_sync),
      .r_en(r_en),
      .r_addr(mpeg_controller_addr),
-     .mpeg_sync_out(mpeg_sync_out),
-     .mpeg_valid_out(mpeg_valid_out),
+     .mpeg_sync_out(mpeg_sync_out_d),
+     .mpeg_valid_out(mpeg_valid_out_d),
      .word_r_en()
      );
 
