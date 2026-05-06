@@ -45,6 +45,7 @@ src/mpeg_recorder_avalon_mm_master_write/hdl/mpeg_irq.sv
 
 src/mpeg_playback_avalon_mm_master_read/hdl/mpeg_irq.sv
 src/mpeg_playback/hdl/packet_buffer_playback.sv
+src/mpeg_playback/hdl/mpeg_sync_gen.sv
 
 pll/pll_sim.f
 pll/pll_sim/
