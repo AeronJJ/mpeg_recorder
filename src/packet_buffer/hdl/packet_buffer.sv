@@ -1,25 +1,27 @@
 `default_nettype none
 module packet_buffer 
   #(
-    parameter ADDR_WIDTH = 6,
-    parameter MEM_WIDTH = 32,
-    parameter PACKET_LENGTH = 188/4
+    parameter PACKET_LENGTH_BYTES = 188,
+    parameter WRITE_DATA_WIDTH = 8,
+    parameter WRITE_ADDR_WIDTH = $clog2(PACKET_LENGTH_BYTES * 8 / WRITE_DATA_WIDTH),
+    parameter READ_DATA_WIDTH = 32,
+    parameter READ_ADDR_WIDTH = $clog2(PACKET_LENGTH_BYTES * 8 / READ_DATA_WIDTH)
     )
   (
-   input wire                    rst_n,
-   
-   input wire                    w_clk,
-   input wire                    w_en,
-   input wire [ADDR_WIDTH - 1:0] w_addr,
-   input wire [MEM_WIDTH - 1:0]  w_data,
+   input wire                          rst_n,
+  
+   input wire                          w_clk,
+   input wire                          w_en,
+   input wire [WRITE_ADDR_WIDTH - 1:0] w_addr,
+   input wire [WRITE_DATA_WIDTH - 1:0] w_data,
 
-   input wire                    r_clk,
-   input wire                    r_en,
-   input wire [ADDR_WIDTH - 1:0] r_addr,
-   output wire [MEM_WIDTH - 1:0] r_data
+   input wire                          r_clk,
+   input wire                          r_en,
+   input wire [READ_ADDR_WIDTH - 1:0]  r_addr,
+   output wire [READ_DATA_WIDTH - 1:0] r_data
    );
 
-  ram_2_port_packet_buffer ram_2_port_packet_buffer_inst 
+  ram_2_port_packet_buffer_new ram_2_port_packet_buffer_new_inst 
     (
      .data      (w_data),
      .rdaddress (r_addr),
@@ -33,4 +35,4 @@ module packet_buffer
   
 endmodule // packet_buffer
 `default_nettype wire
-  
+

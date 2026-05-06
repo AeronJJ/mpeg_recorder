@@ -12,6 +12,7 @@ mpeg_verilator() {
 
 	if ! python $MERGE_SV -t $3.sv -s $tmp_data.sv -o $tmp_tb.sv; then
 	    echo "merge_sv.py failed"
+	# elif ! verilator --coverage --assert --trace --debug --timescale 1ns/100ps -CFLAGS "-g -O0" -LDFLAGS "-fsanitize=address" --binary $tmp_tb.sv -y ../hdl; then
 	elif ! verilator --coverage --trace --timescale 1ns/100ps --binary $tmp_tb.sv -y ../hdl; then
 	    echo "verilator failed"
 	elif ! ./obj_dir/Vtmp; then
