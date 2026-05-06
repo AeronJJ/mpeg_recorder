@@ -14,7 +14,6 @@ module mpeg_top_level
    input wire                          start_n,
    input wire                          stop_n,
   
-
    output wire                         mpeg_clk_6MHz_out,
    output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
    output wire                         mpeg_sync_out,
@@ -72,6 +71,7 @@ module mpeg_top_level
   // PLL //
   wire sys_clk_100MHz;
   wire sys_clk_1MHz;
+  wire mpeg_clk_6MHz_playback_in;
   wire pll_locked;
   pll pll0 
     (
@@ -79,20 +79,17 @@ module mpeg_top_level
      .rst(~rst_n),	     //   reset.reset
      .outclk_0(sys_clk_100MHz), // outclk0.clk
      .outclk_1(sys_clk_1MHz), // outclk1.clk
+     .outclk_2(mpeg_clk_6MHz_playback_in), // outclk2.clk
      .locked(pll_locked) // locked.export
      );
   // //
   
   // Gate rst_n behind pll lock //
   wire rst_n_gated;
-  assign rst_n_gated = rst_n & pll_locked;
+  assign rst_n_gated = rst_n;
+// & pll_locked;
   // // 
   
-  // assign mpeg_clk_6MHz_out = mpeg_clk_6MHz;
-  // assign mpeg_data_8_out = mpeg_data_8;
-  // assign mpeg_sync_out = mpeg_sync;
-  // assign mpeg_valid_out = mpeg_valid;
-
   // Synchronise start and stop //
   reg start_tmp;
   reg stop_tmp;
@@ -138,7 +135,7 @@ module mpeg_top_level
      .mpeg_sync(mpeg_sync),
      .mpeg_valid(mpeg_valid),
      .sys_clk(sys_clk_100MHz),
-     .start(~start_sync),
+     .start((~start_sync) && mode[2]),
      .stop(~stop_sync),
      .r_data_32(r_data_32),
      .r_addr(r_addr),
@@ -161,7 +158,8 @@ module mpeg_top_level
   wire                          mpeg_valid_playback;
 
   wire                          clk_playback;
-    
+  wire [31:0]                   mpeg_sync_clk_cycle_count;
+      
   mpeg_playback
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
@@ -176,12 +174,12 @@ module mpeg_top_level
      .pb1_w_en(pb1_w_en),
      .running(running_playback),
      .packet_done_pulse(packet_done_playback),
-     .mpeg_clk_6MHz(mpeg_clk_6MHz),
-     .mpeg_sync(mpeg_sync),
+     .mpeg_clk_6MHz(mpeg_clk_6MHz_playback_in),,
      .mpeg_clk_6MHz_out(mpeg_clk_6MHz_playback),
      .mpeg_data_8_out(mpeg_data_8_playback),
      .mpeg_sync_out(mpeg_sync_playback),
-     .mpeg_valid_out(mpeg_valid_playback)
+     .mpeg_valid_out(mpeg_valid_playback),
+     .mpeg_sync_clk_cycle_count(mpeg_sync_clk_cycle_count)
      );
   // //
 
@@ -254,7 +252,9 @@ module mpeg_top_level
      .mpeg_playback_avalon_mm_master_read_0_w_interface_w_en_pb1( pb1_w_en),  // .w_en_pb1
      .mpeg_recorder_mode_select_interface_0_mode_mode           ( mode),
      .mpeg_playback_avalon_mm_master_read_0_new_clk_clk         ( clk_playback), // mpeg_playback_avalon_mm_master_read_0_new_clk.clk
-     .mpeg_irq_handler_0_led_test_signal_led_test_signal        ( led_test_signal) 
+     .mpeg_irq_handler_0_led_test_signal_led_test_signal        ( led_test_signal), 
+     .reset_bridge_0_in_reset_reset                             ( ~rst_n_gated),  // reset_bridge_0_in_reset.reset
+     .mpeg_playback_avalon_mm_master_read_0_mpeg_sync_clk_cycle_count_mpeg_sync_clk_cycle_count ( mpeg_sync_clk_cycle_count)  // mpeg_playback_avalon_mm_master_read_0_mpeg_sync_clk_cycle_count.mpeg_sync_clk_cycle_count
      );
   
 endmodule // mpeg_top_level
