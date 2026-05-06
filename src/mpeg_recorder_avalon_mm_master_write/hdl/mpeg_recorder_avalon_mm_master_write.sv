@@ -56,11 +56,12 @@ module mpeg_recorder_avalon_mm_master_write
   
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
-  assign writedata = { r_data[7:0], 
-                       r_data[15:8], 
-                       r_data[23:16], 
-                       r_data[31:24] 
-                       };  
+  assign writedata = r_data;
+                     // { r_data[7:0], 
+                     //   r_data[15:8], 
+                     //   r_data[23:16], 
+                     //   r_data[31:24] 
+                     //   };  
 
   // Control write signal //
   reg writeready;
@@ -105,6 +106,7 @@ module mpeg_recorder_avalon_mm_master_write
       writeready <= 1'b0;
       en_buffer0_done_irq <= 1'b0;
       en_buffer1_done_irq <= 1'b0;
+      current_state <= s_IDLE;
     end
     else if (en) begin
       current_state <= next_state;
@@ -158,6 +160,7 @@ module mpeg_recorder_avalon_mm_master_write
       address <= BUF0_BASE_ADDR;
       en_buffer0_done_irq <= 1'b0;
       en_buffer1_done_irq <= 1'b0;
+      current_state <= s_IDLE;
     end
   end // always_ff @ (posedge clk or posedge rst)
 
