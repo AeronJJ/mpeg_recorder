@@ -31,7 +31,9 @@ module mpeg_playback_tb;
   wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out_o;
   wire                         mpeg_sync_out_o;
   wire                         mpeg_valid_out_o;
-  
+
+  reg [31:0]                   mpeg_sync_clk_cycle_count_i;
+    
   
   mpeg_playback dut_mpeg_playback 
     (
@@ -44,11 +46,12 @@ module mpeg_playback_tb;
      .running(running_i),
      .packet_done_pulse(packet_done_pulse_o),
      .mpeg_clk_6MHz(mpeg_clk_6MHz_i),
-     .mpeg_sync(mpeg_sync_i),
+     // .mpeg_sync(mpeg_sync_i),
      .mpeg_clk_6MHz_out(mpeg_clk_6MHz_out_o),
      .mpeg_data_8_out(mpeg_data_8_out_o),
      .mpeg_sync_out(mpeg_sync_out_o),
-     .mpeg_valid_out(mpeg_valid_out_o)
+     .mpeg_valid_out(mpeg_valid_out_o),
+     .mpeg_sync_clk_cycle_count(mpeg_sync_clk_cycle_count_i)
      );
   
   always #(CLK_HALF_PERIOD_NS) begin
@@ -68,6 +71,8 @@ module mpeg_playback_tb;
     mpeg_clk_6MHz_i = 1'b0;
     mpeg_sync_i = 1'b0;
 
+    mpeg_sync_clk_cycle_count_i = 380;
+    
     running_i = 1'b0;
 
     pb_w_data_i = '0;
