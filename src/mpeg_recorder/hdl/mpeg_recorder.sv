@@ -33,7 +33,7 @@ module mpeg_recorder
   reg  packet_done_d;
   
   assign packet_done = (packet_done_r ^ packet_done_d) & packet_done_r;
-  assign packet_done_r = (w_addr == 8'd188) ? 1'b1 : 1'b0;
+  assign packet_done_r = (w_addr == 8'd187) ? 1'b1 : 1'b0;
   
   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin 
     if (~rst_n) begin
@@ -44,13 +44,13 @@ module mpeg_recorder
     end
   end
 
-  reg packet_done_pulse;
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin 
+  reg packet_done_out_delay;
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin 
     if (~rst_n) begin
-      packet_done_pulse <= 1'b0;
+      packet_done_out_delay <= 1'b0;
     end
     else begin
-      packet_done_pulse <= packet_done;
+      packet_done_out_delay <= packet_done;
     end
   end
 
@@ -65,7 +65,7 @@ module mpeg_recorder
     end
     else begin
       packet_done_out <= packet_done_out_d;
-      packet_done_out_d <= packet_done;
+      packet_done_out_d <= packet_done_out_delay;
     end
   end
   // //
@@ -100,8 +100,6 @@ module mpeg_recorder
 
   // Generate write address for packet buffer //
   reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr;
-  reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr_tmp;
-
   reg                             packet_started;  
 
   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
@@ -114,7 +112,7 @@ module mpeg_recorder
 	w_addr <= '0;
 	packet_started <= 1'b1;
       end
-      else if (packet_done_pulse) begin
+      else if (packet_done) begin
 	packet_started <= 1'b0;
       end
       else if (packet_started) begin
