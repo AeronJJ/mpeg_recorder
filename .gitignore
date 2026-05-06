@@ -19,6 +19,7 @@ src/*/sim/
 unsaved/
 hps_isw_handoff/
 hps/hps/
+greybox_tmp/
 
 .qsys_edit/
 db/
