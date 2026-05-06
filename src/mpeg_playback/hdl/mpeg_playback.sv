@@ -21,12 +21,14 @@ module mpeg_playback
    output reg                          packet_done_pulse,
    
    input wire                          mpeg_clk_6MHz,
-   input wire                          mpeg_sync, // Used to start reading and guarantee alignment
+   // input wire                          mpeg_sync, // Used to start reading and guarantee alignment
 
    output wire                         mpeg_clk_6MHz_out,
    output wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_out,
    output reg                          mpeg_sync_out,
-   output reg                          mpeg_valid_out
+   output reg                          mpeg_valid_out,
+
+   input wire [31:0]                   mpeg_sync_clk_cycle_count
    );
 
   // Delay sync_out and valid_out //
@@ -60,7 +62,8 @@ module mpeg_playback
     end
   end
   
-  assign mpeg_data_8_out = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
+  // assign mpeg_data_8_out = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
+  assign mpeg_data_8_out = pb_r_sel ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
 
   packet_buffer_playback 
     #(
@@ -153,17 +156,30 @@ module mpeg_playback
 
   // Select packet buffer to read //
   reg pb_r_sel;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin
     if (~rst_n) begin
       pb_r_sel <= 1'b0;
     end
     else if (~running) begin
-      pb_r_sel <= 1'b0;
+      pb_r_sel <= 1'b1;
     end
-    else if (packet_done) begin
+    else if (packet_done_pulse) begin
       pb_r_sel <= ~pb_r_sel;
     end
   end
+  // //
+
+  // Generate MPEG sync pulse //
+  wire mpeg_sync;
+  mpeg_sync_gen mpeg_sync_gen_inst
+    (
+     .rst_n(rst_n),
+     .sys_clk(sys_clk),
+     .mpeg_clk(mpeg_clk_6MHz),
+     .en(running),
+     .clk_cycles_count(mpeg_sync_clk_cycle_count),
+     .mpeg_sync(mpeg_sync)
+     );
   // //
   
 endmodule // mpeg_playback
