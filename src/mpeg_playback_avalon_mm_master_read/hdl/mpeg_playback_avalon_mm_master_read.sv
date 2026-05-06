@@ -38,8 +38,19 @@ module mpeg_playback_avalon_mm_master_read
    input wire                     buffer0_fill_request_irq_received,
    input wire                     buffer1_fill_request_irq_received,
 
-   output reg                     init_done    // Goes high once pb0 is filled
+   output reg                     init_done,   // Goes high once pb0 is filled
+   output reg [31:0]              mpeg_sync_clk_cycle_count // This is in sys clock domain, so has potential to glitch...
    );
+
+  localparam [31:0] BUF0_LAST_WORD_ADDR =
+                    BUF0_BASE_ADDR + BUFFER_LENGTH - 32'd4;
+
+  localparam [31:0] BUF1_LAST_WORD_ADDR =
+                    BUF1_BASE_ADDR + BUFFER_LENGTH - 32'd4;
+  
+  wire              reading_clk_cycle_word =
+                    (address == BUF0_LAST_WORD_ADDR) ||
+                    (address == BUF1_LAST_WORD_ADDR);
 
   // Synchronise packet done in //
   reg packet_done_d;
@@ -85,11 +96,12 @@ module mpeg_playback_avalon_mm_master_read
   reg                    read_accepted;
   assign burstcount = 4'd1;
   assign byteenable = 4'b1111;
-  assign w_data = { readdata_reg[7:0],
-                    readdata_reg[15:8],
-                    readdata_reg[23:16],
-                    readdata_reg[31:24]                   
-                    };
+  assign w_data = readdata_reg;
+                  // { readdata_reg[7:0],
+                  //   readdata_reg[15:8],
+                  //   readdata_reg[23:16],
+                  //   readdata_reg[31:24]                   
+                  //   };
 
   // Control read signal and register read data //
   reg read_ready;
@@ -99,15 +111,27 @@ module mpeg_playback_avalon_mm_master_read
       read_accepted <= 1'b0;
       readdata_reg <= '0;
       writeready <= 1'b0;
+      mpeg_sync_clk_cycle_count <= 32'd0;
     end
     else if (~waitrequest && read) begin // Read accepted
       read <= 1'b0;
       read_accepted <= 1'b1;
     end
-    else if (read_accepted && readdatavalid) begin
-      readdata_reg <= readdata;
+    else if (read_accepted && readdatavalid) begin 
+      if (reading_clk_cycle_word) begin
+        mpeg_sync_clk_cycle_count <= { readdata[7:0],
+                                       readdata[15:8],
+                                       readdata[23:16],
+                                       readdata[31:24]                   
+                                       };
+        writeready <= 1'b0;
+      end
+      else begin
+        readdata_reg <= readdata;
+        writeready <= 1'b1;
+      end
+      
       read_accepted <= 1'b0;
-      writeready <= 1'b1;
     end
     else if (read_ready) begin
       read <= 1'b1;
@@ -123,8 +147,8 @@ module mpeg_playback_avalon_mm_master_read
   reg fill_pb0; // Used to init pb0
   reg pb_sel;
   reg w_en;
-  assign w_en_pb0 = w_en & ~pb_sel;
-  assign w_en_pb1 = w_en & pb_sel;
+  assign w_en_pb0 = writeready & ~pb_sel;
+  assign w_en_pb1 = writeready & pb_sel;
   // // 
 
   // State Machine //
@@ -204,8 +228,15 @@ module mpeg_playback_avalon_mm_master_read
         s_READ: begin
           fill_pb0 <= 1'b0;
           read_ready <= 1'b1;
+          w_en <= 1'b0;
+          if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
+            address <= BUF0_LAST_WORD_ADDR;
+          end
+          else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
+            address <= BUF1_LAST_WORD_ADDR;
+          end
         end
-
+        
         s_WAIT_READ: begin
           read_ready <= 1'b0;
         end
@@ -278,10 +309,13 @@ module mpeg_playback_avalon_mm_master_read
         if (writeready) begin
           next_state = s_WRITE;
         end
+        else if ((readdatavalid == 1'b1) && (reading_clk_cycle_word)) begin
+          next_state = s_DONE;
+        end
       end
 
       s_WRITE: begin
-        if (w_addr < 6'd47) begin
+        if (w_addr < 6'd46) begin
           next_state = s_READ;
         end
         else begin
@@ -290,18 +324,26 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_DONE: begin
-        if (address == BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin 
+        if (address == BUF0_LAST_WORD_ADDR) begin
           // Buffer 0 empty, req buf0
           next_state = s_REQ_BUF0;
         end
-        else if (address == BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
+        else if (address == BUF1_LAST_WORD_ADDR) begin
           // Buffer 1 empty, req buf1
           next_state = s_REQ_BUF1;
+        end
+        else if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
+          // Buffer 0 empty, read clock cycle count
+          next_state = s_READ;
+        end
+        else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
+          // Buffer 1 empty, read clock cycle count
+          next_state = s_READ;
         end
         else begin
           next_state = s_WAIT;
         end
-      end
+      end // case: s_DONE
 
       s_STOP: begin
         next_state = s_IDLE;
