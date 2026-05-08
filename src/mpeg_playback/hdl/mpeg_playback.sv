@@ -51,18 +51,6 @@ module mpeg_playback
   wire [MPEG_DATA_WIDTH - 1:0] r_data_mem0;
   wire [MPEG_DATA_WIDTH - 1:0] r_data_mem1;
 
-  reg                          r_data_switch;
-  
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
-    if (~rst_n) begin
-      r_data_switch <= 1'b0;
-    end
-    else if (running && packet_done) begin
-      r_data_switch <= ~r_data_switch;
-    end
-  end
-  
-  // assign mpeg_data_8_out = r_data_switch ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
   assign mpeg_data_8_out = pb_r_sel ? r_data_mem0 : r_data_mem1; // Read mem0 when mem1 is being written, and vice-versa
 
   packet_buffer_playback 
@@ -118,7 +106,7 @@ module mpeg_playback
     (
      .rst_n(rst_n),
      .mpeg_clk_6MHz(mpeg_clk_6MHz),
-     .packet_done_pulse(running & mpeg_sync),
+     .start(running & mpeg_sync),
      .r_en(r_en),
      .r_addr(mpeg_controller_addr),
      .mpeg_sync_out(mpeg_sync_out_d),
