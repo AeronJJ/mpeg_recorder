@@ -122,7 +122,9 @@ module mpeg_top_level
   wire [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_recorder = mpeg_data_8;
   wire                         mpeg_sync_recorder = mpeg_sync;
   wire                         mpeg_valid_recorder = mpeg_valid;
-    
+
+  wire                         recording;
+  
   mpeg_recorder
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH)
@@ -140,7 +142,8 @@ module mpeg_top_level
      .r_data_32(r_data_32),
      .r_addr(r_addr),
      .r_en(r_en),
-     .packet_done_out(packet_done)
+     .packet_done_out(packet_done),
+     .recording(recording)
      );
   // //
 
@@ -174,7 +177,7 @@ module mpeg_top_level
      .pb1_w_en(pb1_w_en),
      .running(running_playback),
      .packet_done_pulse(packet_done_playback),
-     .mpeg_clk_6MHz(mpeg_clk_6MHz_playback_in),,
+     .mpeg_clk_6MHz(mpeg_clk_6MHz_playback_in),
      .mpeg_clk_6MHz_out(mpeg_clk_6MHz_playback),
      .mpeg_data_8_out(mpeg_data_8_playback),
      .mpeg_sync_out(mpeg_sync_playback),
@@ -184,22 +187,62 @@ module mpeg_top_level
   // //
 
   // MPEG stream output //
-  assign mpeg_clk_6MHz_out = mode[3] ? mpeg_clk_6MHz_playback : mpeg_clk_6MHz_recorder;
-  assign mpeg_data_8_out = mode[3] ? mpeg_data_8_playback : mpeg_data_8_recorder;
-  assign mpeg_sync_out = mode[3] ? mpeg_sync_playback : mpeg_sync_recorder;
-  assign mpeg_valid_out = mode[3] ? mpeg_valid_playback : mpeg_valid_recorder;
+  always_comb begin
+    case (mode)
+      4'b0001: begin
+        // Idle
+        mpeg_clk_6MHz_out = 1'b0;
+        mpeg_data_8_out   = 8'b0;
+        mpeg_sync_out     = 1'b0;
+        mpeg_valid_out    = 1'b0;
+      end
+
+      4'b0010: begin
+        // Passthrough
+        mpeg_clk_6MHz_out = mpeg_clk_6MHz;
+        mpeg_data_8_out   = mpeg_data_8;
+        mpeg_sync_out     = mpeg_sync;
+        mpeg_valid_out    = mpeg_valid;
+      end
+
+      4'b0100: begin
+        // Record
+        mpeg_clk_6MHz_out = mpeg_clk_6MHz_recorder;
+        mpeg_data_8_out   = mpeg_data_8_recorder;
+        mpeg_sync_out     = mpeg_sync_recorder;
+        mpeg_valid_out    = mpeg_valid_recorder;
+      end
+
+      4'b1000: begin
+        // Playback
+        mpeg_clk_6MHz_out = mpeg_clk_6MHz_playback;
+        mpeg_data_8_out   = mpeg_data_8_playback;
+        mpeg_sync_out     = mpeg_sync_playback;
+        mpeg_valid_out    = mpeg_valid_playback;
+      end
+
+      default: begin
+        // Treat as idle
+        mpeg_clk_6MHz_out = 1'b0;
+        mpeg_data_8_out   = 8'b0;
+        mpeg_sync_out     = 1'b0;
+        mpeg_valid_out    = 1'b0;        
+      end
+    endcase
+  end
   // //
 
   // LCD //
   wire [3:0] mode; // Onehot (playback, record, passthrough, idle)
-  assign mode = mode_switch_test;
+  // assign mode = mode_switch_test;
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
      .sys_clk_100MHz(sys_clk_100MHz),
      .sys_clk_1MHz(sys_clk_1MHz),
-     // .mode(mode),
-     .mode(),
+     .recording(recording),
+     .mode(mode),
+     // .mode(),
      .lcd_cs_out(lcd_cs_out),
      .lcd_dcrs_out(lcd_dcrs_out),
      .lcd_sdi_out(lcd_sdi_out),
