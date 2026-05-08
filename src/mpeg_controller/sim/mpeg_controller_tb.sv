@@ -10,7 +10,7 @@ module mpeg_controller_tb;
   /* verilator lint_off UNUSEDSIGNAL */
   reg        rst_n_i;
   reg        mpeg_clk_6MHz_i;
-  reg        packet_done_pulse_i;
+  reg        start_i;
   wire       r_en_o;
   wire [ADDR_WIDTH - 1:0] r_addr_o;
   wire                    mpeg_sync_out_o;
@@ -24,7 +24,7 @@ module mpeg_controller_tb;
     (
      .rst_n(rst_n_i),
      .mpeg_clk_6MHz(mpeg_clk_6MHz_i),
-     .packet_done_pulse(packet_done_pulse_i),
+     .start(start_i),
      .r_en(r_en_o),
      .r_addr(r_addr_o),
      .mpeg_sync_out(mpeg_sync_out_o),
@@ -42,7 +42,7 @@ module mpeg_controller_tb;
 
     mpeg_clk_6MHz_i = 0;
     rst_n_i = 0;
-    packet_done_pulse_i = 0;
+    start_i = 0;
 
     @ (posedge mpeg_clk_6MHz_i);
     
@@ -52,11 +52,11 @@ module mpeg_controller_tb;
 
     #(4*CLK_HALF_PERIOD_NS);
 
-    packet_done_pulse_i = 1;
+    start_i = 1;
 
     #(2*CLK_HALF_PERIOD_NS);
 
-    packet_done_pulse_i = 0;
+    start_i = 0;
 
     #(6*CLK_HALF_PERIOD_NS);
 
@@ -64,11 +64,11 @@ module mpeg_controller_tb;
 
     #(6*CLK_HALF_PERIOD_NS);
 
-    packet_done_pulse_i = 1;
+    start_i = 1;
 
     #(2*CLK_HALF_PERIOD_NS);
 
-    packet_done_pulse_i = 0;
+    start_i = 0;
 
     #(6*CLK_HALF_PERIOD_NS);
 

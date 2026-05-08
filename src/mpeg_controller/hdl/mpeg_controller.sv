@@ -8,7 +8,7 @@ module mpeg_controller
     input wire			   rst_n,
     input wire			   mpeg_clk_6MHz,
     
-    input wire			   packet_done_pulse,
+    input wire			   start,
     
     output wire			   r_en,
     output wire [ADDR_WIDTH - 1:0] r_addr,
@@ -29,7 +29,7 @@ module mpeg_controller
       if (~rst_n) begin
 	 r_en_internal <= 1'b0;
       end
-      else if (packet_done_pulse) begin
+      else if (start) begin
 	 r_en_internal <= 1'b1;
       end
       else if (r_addr_internal == ADDR_WIDTH'(PACKET_LENGTH - 1)) begin
@@ -53,7 +53,7 @@ module mpeg_controller
       if (~rst_n) begin
 	 word_r_en <= 1'b0;
       end
-      else if (packet_done_pulse) begin
+      else if (start) begin
 	 word_r_en <= 1'b1;
       end
       else if (r_en_internal) begin
