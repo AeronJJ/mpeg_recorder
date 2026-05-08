@@ -1,20 +1,21 @@
 `default_nettype none
 module mpeg_scene_mode_selection 
   #(
-     parameter NUM_PRIMITIVES = 3
+    parameter NUM_PRIMITIVES = 3
     )
   (
-    input wire         rst_n,
-    input wire         clk, 
-   
-    input wire [8:0]   x,             // Current pixel position
-    input wire [7:0]   y,
-    output wire [15:0] current_pixel, // 16 bit colour of current pixel.
-   
-    input wire [8:0]   touch_x,
-    input wire [7:0]   touch_y,
-    input wire         touch_detected,
-    output reg [3:0]   mode
+   input wire         rst_n,
+   input wire         clk, 
+  
+   input wire [8:0]   x,             // Current pixel position
+   input wire [7:0]   y,
+   output wire        pixel_set_out,
+   output wire [15:0] current_pixel, // 16 bit colour of current pixel.
+  
+   input wire [8:0]   touch_x,
+   input wire [7:0]   touch_y,
+   input wire         touch_detected,
+   output reg [3:0]   mode
    );
 
   import msp2807_colours::*;
@@ -48,6 +49,7 @@ module mpeg_scene_mode_selection
   end
   
   assign current_pixel = pixel_set ? pixel_colour : MSP_WHITE;
+  assign pixel_set_out = |pixel_set;
   
   mpeg_scene_primitive_rectangle
     #(
