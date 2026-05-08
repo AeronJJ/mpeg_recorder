@@ -24,9 +24,13 @@ module mpeg_recorder
    output wire [MPEG_MEM_LENGTH - 1:0] r_data_32,
    input wire [MPEG_ADDR_WIDTH - 1:0]  r_addr,
    input wire                          r_en,
-   output reg                          packet_done_out
+   output reg                          packet_done_out,
+
+   output wire                         recording
    );
 
+  assign recording = running_sys;
+  
   // Packet done signals //
   wire packet_done;
   wire packet_done_r;
