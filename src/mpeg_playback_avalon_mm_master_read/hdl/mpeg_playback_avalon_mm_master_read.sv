@@ -116,6 +116,7 @@ module mpeg_playback_avalon_mm_master_read
     else if (~waitrequest && read) begin // Read accepted
       read <= 1'b0;
       read_accepted <= 1'b1;
+      writeready <= 1'b0;
     end
     else if (read_accepted && readdatavalid) begin 
       if (reading_clk_cycle_word) begin
@@ -163,8 +164,8 @@ module mpeg_playback_avalon_mm_master_read
   localparam s_WRITE = 4'd8;     // Write into packet buffer
   localparam s_DONE = 4'd9;      // Packet buffer filled
   localparam s_STOP = 4'd10;     // Stops process and goes to idle
-  localparam s_READ_CLOCK0 = 4'd11; // Read sync clock cycles
-  localparam s_READ_CLOCK1 = 4'd12; // Read sync clock cycles
+  localparam s_READ_CLOCK_BUF0 = 4'd11; // Read sync clock cycles
+  localparam s_READ_CLOCK_BUF1 = 4'd12; // Read sync clock cycles
 
   reg [3:0]  current_state;
   reg [3:0]  next_state;
@@ -204,12 +205,12 @@ module mpeg_playback_avalon_mm_master_read
 
         s_REQ_BUF1: begin
           en_buffer1_fill_request_irq <= 1'b1;
-          address <= BUF0_BASE_ADDR;
+          address <= BUF0_LAST_WORD_ADDR;
         end
 
         s_REQ_BUF0: begin
           en_buffer0_fill_request_irq <= 1'b1;
-          address <= BUF1_BASE_ADDR;
+          address <= BUF1_LAST_WORD_ADDR;
         end
 
         s_WAIT: begin
@@ -332,9 +333,9 @@ module mpeg_playback_avalon_mm_master_read
         if (writeready) begin
           next_state = s_WRITE;
         end
-        else if ((readdatavalid == 1'b1) && (reading_clk_cycle_word)) begin
-          next_state = s_DONE;
-        end
+        // else if ((readdatavalid == 1'b1) && (reading_clk_cycle_word)) begin
+        //   next_state = s_DONE;
+        // end
       end
 
       s_WRITE: begin
