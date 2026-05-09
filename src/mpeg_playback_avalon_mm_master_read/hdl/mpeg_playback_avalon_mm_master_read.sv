@@ -163,11 +163,11 @@ module mpeg_playback_avalon_mm_master_read
   localparam s_WRITE = 4'd8;     // Write into packet buffer
   localparam s_DONE = 4'd9;      // Packet buffer filled
   localparam s_STOP = 4'd10;     // Stops process and goes to idle
+  localparam s_READ_CLOCK0 = 4'd11; // Read sync clock cycles
+  localparam s_READ_CLOCK1 = 4'd12; // Read sync clock cycles
 
   reg [3:0]  current_state;
   reg [3:0]  next_state;
-
-  // int        delay;
   
   always_ff @ (posedge clk or posedge rst) begin
     if (rst) begin
@@ -178,23 +178,17 @@ module mpeg_playback_avalon_mm_master_read
       en_buffer0_fill_request_irq <= 1'b0;
       en_buffer1_fill_request_irq <= 1'b0;
       
-      address <= BUF0_BASE_ADDR;
+      address <= BUF0_LAST_WORD_ADDR;
       read_ready <= 1'b0;
 
       pb_sel <= 1'b0;
       w_en <= 1'b0;
       w_addr <= 6'd0;
-
-      // delay <= '0;
-    end // if (rst)
-    // else if (delay > '0) begin
-    //   delay <= delay - 1'b1;
-    // end
+    end 
     else if (en) begin
       current_state <= next_state;
       case (current_state)
         s_IDLE: begin
-          // delay <= 32'd5000000;          
         end
 
         s_INIT: begin
@@ -206,7 +200,6 @@ module mpeg_playback_avalon_mm_master_read
 
         s_INIT_WAIT: begin
           en_buffer0_fill_request_irq <= 1'b0;
-          // delay <= 32'd50000000 * 10; // 10 second wait
         end
 
         s_REQ_BUF1: begin
@@ -229,12 +222,12 @@ module mpeg_playback_avalon_mm_master_read
           fill_pb0 <= 1'b0;
           read_ready <= 1'b1;
           w_en <= 1'b0;
-          if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
-            address <= BUF0_LAST_WORD_ADDR;
-          end
-          else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
-            address <= BUF1_LAST_WORD_ADDR;
-          end
+          // if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
+          //   address <= BUF0_LAST_WORD_ADDR;
+          // end
+          // else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
+          //   address <= BUF1_LAST_WORD_ADDR;
+          // end
         end
         
         s_WAIT_READ: begin
@@ -256,6 +249,34 @@ module mpeg_playback_avalon_mm_master_read
 
         s_STOP: begin
           
+        end
+
+        s_READ_CLOCK_BUF0: begin
+          if (readdatavalid) begin
+            address <= BUF0_BASE_ADDR;
+            read_ready <= 1'b0;
+          end
+          else if (read || read_accepted) begin
+            read_ready <= 1'b0;
+          end
+          else if (address != BUF0_BASE_ADDR) begin
+            address <= BUF0_LAST_WORD_ADDR;
+            read_ready <= 1'b1;
+          end
+        end
+
+        s_READ_CLOCK_BUF1: begin
+          if (readdatavalid) begin
+            address <= BUF1_BASE_ADDR;
+            read_ready <= 1'b0;
+          end
+          else if (read || read_accepted) begin
+            read_ready <= 1'b0;
+          end
+          else if (address != BUF1_BASE_ADDR) begin
+            address <= BUF1_LAST_WORD_ADDR;
+            read_ready <= 1'b1;
+          end          
         end
 
         default: begin
@@ -288,11 +309,13 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_REQ_BUF1: begin
-        next_state = s_WAIT;
+        // next_state = s_WAIT;
+        next_state = s_READ_CLOCK_BUF0;
       end
 
       s_REQ_BUF0: begin
-        next_state = s_WAIT;        
+        // next_state = s_WAIT;        
+        next_state = s_READ_CLOCK_BUF1;
       end
 
       s_WAIT: begin
@@ -324,21 +347,29 @@ module mpeg_playback_avalon_mm_master_read
       end
 
       s_DONE: begin
-        if (address == BUF0_LAST_WORD_ADDR) begin
+        // if (address == BUF0_LAST_WORD_ADDR) begin
+        //   // Buffer 0 empty, req buf0
+        //   next_state = s_REQ_BUF0;
+        // end
+        // else if (address == BUF1_LAST_WORD_ADDR) begin
+        //   // Buffer 1 empty, req buf1
+        //   next_state = s_REQ_BUF1;
+        // end
+        // else if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
+        //   // Buffer 0 empty, read clock cycle count
+        //   next_state = s_READ;
+        // end
+        // else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
+        //   // Buffer 1 empty, read clock cycle count
+        //   next_state = s_READ;
+        // end
+        if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin
           // Buffer 0 empty, req buf0
           next_state = s_REQ_BUF0;
         end
-        else if (address == BUF1_LAST_WORD_ADDR) begin
+        else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
           // Buffer 1 empty, req buf1
           next_state = s_REQ_BUF1;
-        end
-        else if (address >= BUF0_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET && address < BUF1_BASE_ADDR) begin 
-          // Buffer 0 empty, read clock cycle count
-          next_state = s_READ;
-        end
-        else if (address >= BUF1_BASE_ADDR + BUFFER_LENGTH - BUFFER_OFFSET) begin
-          // Buffer 1 empty, read clock cycle count
-          next_state = s_READ;
         end
         else begin
           next_state = s_WAIT;
@@ -347,7 +378,19 @@ module mpeg_playback_avalon_mm_master_read
 
       s_STOP: begin
         next_state = s_IDLE;
-      end  
+      end
+
+      s_READ_CLOCK_BUF0: begin
+        if (address == BUF0_BASE_ADDR) begin
+          next_state = s_WAIT;
+        end
+      end
+
+      s_READ_CLOCK_BUF1: begin
+        if (address == BUF1_BASE_ADDR) begin
+          next_state = s_WAIT;
+        end
+      end
 
       default: begin
         next_state = s_IDLE;
