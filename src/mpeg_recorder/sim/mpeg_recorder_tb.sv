@@ -31,7 +31,8 @@ module mpeg_recorder_tb;
   wire                         mpeg_valid_out_o;
   wire [MPEG_MEM_LENGTH - 1:0] r_data_32_o;
   wire                         packet_done_out_o;
-  
+  wire                         recording_o;
+    
   mpeg_recorder
     #(
       .MPEG_DATA_WIDTH(MPEG_DATA_WIDTH),
@@ -52,7 +53,8 @@ module mpeg_recorder_tb;
      .r_data_32(r_data_32_o),
      .r_addr(r_addr_i),
      .r_en(r_en_i),
-     .packet_done_out(packet_done_out_o)
+     .packet_done_out(packet_done_out_o),
+     .recording(recording_o)
      );
 
   always begin
@@ -67,7 +69,7 @@ module mpeg_recorder_tb;
     disable fork;
     
     // @ (posedge mpeg_sync_i);
-    mpeg_clk_6MHz_i = 1'b1;
+    mpeg_clk_6MHz_i = 1'b0;
     fork
       forever begin
 	#(MPEG_CLK_HALF_PERIOD_NS) mpeg_clk_6MHz_i = ~mpeg_clk_6MHz_i;
@@ -249,6 +251,7 @@ module mpeg_behavioural_recorder
     packet_count += 1;
     $display("%s: Recording packet %0d to buffer: %0d", MPEG_DIRECTION, packet_count, write_buffer1);
     done = 1'b0;
+    #1;
     for (i = 0; i < 188; i += 1) begin
       @ (posedge mpeg_clk) begin
 	if (write_buffer1) begin
