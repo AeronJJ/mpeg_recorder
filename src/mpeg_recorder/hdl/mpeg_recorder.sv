@@ -29,6 +29,26 @@ module mpeg_recorder
    output wire                         recording
    );
 
+  // Detect mpeg positive edge //
+  wire mpeg_clk_pos_edge = (mpeg_clk_d2 ^ mpeg_clk_d1) & mpeg_clk_d1;
+  reg mpeg_clk_d0;
+  reg mpeg_clk_d1;
+  reg mpeg_clk_d2;
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
+    if (~rst_n) begin
+      mpeg_clk_d0 <= 1'b0;
+      mpeg_clk_d1 <= 1'b0;
+      mpeg_clk_d2 <= 1'b0;
+    end
+    else begin
+      mpeg_clk_d0 <= mpeg_clk_6MHz;
+      mpeg_clk_d1 <= mpeg_clk_d0;
+      mpeg_clk_d2 <= mpeg_clk_d1;
+    end
+  end // always_ff @ (posedge sys_clk or negedge rst_n)
+
+  // //
+
   assign recording = running_sys;
   
   // Packet done signals //
@@ -39,21 +59,21 @@ module mpeg_recorder
   assign packet_done = (packet_done_r ^ packet_done_d) & packet_done_r;
   assign packet_done_r = (w_addr == 8'd187) ? 1'b1 : 1'b0;
   
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin 
+  always_ff @ (posedge sys_clk or negedge rst_n) begin 
     if (~rst_n) begin
       packet_done_d <= 1'b0;
     end
-    else begin
+    else if (mpeg_clk_pos_edge) begin
       packet_done_d <= packet_done_r;
     end
   end
 
   reg packet_done_out_delay;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin 
+  always_ff @ (posedge sys_clk or negedge rst_n) begin 
     if (~rst_n) begin
       packet_done_out_delay <= 1'b0;
     end
-    else begin
+    else if (mpeg_clk_pos_edge) begin
       packet_done_out_delay <= packet_done;
     end
   end
@@ -93,12 +113,12 @@ module mpeg_recorder
   // Delay mpeg_data by one clock cycle //
   reg [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_d;
   reg                         mpeg_valid_d;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
     if (~rst_n) begin
       mpeg_data_8_d <= '0;
       mpeg_valid_d <= 1'b0;
     end
-    else begin
+    else if (mpeg_clk_pos_edge) begin
       mpeg_data_8_d <= mpeg_data_8;
       mpeg_valid_d <= mpeg_valid;
     end
@@ -109,12 +129,12 @@ module mpeg_recorder
   reg [MPEG_ADDR_WIDTH - 1 + 2:0] w_addr;
   reg                             packet_started;  
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge sys_clk or negedge rst_n) begin //
     if (~rst_n) begin
       w_addr <= '0;
       packet_started <= 1'b0;
     end
-    else if (running) begin
+    else if (running && mpeg_clk_pos_edge) begin
       if (mpeg_sync && ~packet_started) begin
 	w_addr <= '0;
 	packet_started <= 1'b1;
@@ -131,15 +151,17 @@ module mpeg_recorder
 
   // Generate write enable signal to swap between packet buffers //
   reg w_en_mem0;
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
+  always_ff @ (posedge sys_clk or negedge rst_n) begin
     if (~rst_n) begin
       w_en_mem0 <= 1'b0;
     end
-    else if (packet_done && running) begin
-      w_en_mem0 <= ~w_en_mem0;
-    end
-    else if (~running) begin
-      w_en_mem0 <= 1'b0;
+    else if (mpeg_clk_pos_edge) begin
+      if (packet_done && running) begin
+        w_en_mem0 <= ~w_en_mem0;
+      end
+      else if (~running) begin
+        w_en_mem0 <= 1'b0;
+      end
     end
   end
   // //
@@ -172,8 +194,8 @@ module mpeg_recorder
     (
      .rst_n(rst_n),
      
-     .w_clk(~mpeg_clk_6MHz),
-     .w_en(w_en_mem0 & packet_started & mpeg_valid_d),
+     .w_clk(~sys_clk),
+     .w_en(w_en_mem0 & packet_started & mpeg_valid_d & mpeg_clk_pos_edge),
      .w_addr(w_addr),
      .w_data(mpeg_data_8_d),
      
@@ -193,8 +215,8 @@ module mpeg_recorder
     (
      .rst_n(rst_n),
      
-     .w_clk(~mpeg_clk_6MHz),
-     .w_en(~w_en_mem0 & packet_started & mpeg_valid_d),
+     .w_clk(~sys_clk),
+     .w_en(~w_en_mem0 & packet_started & mpeg_valid_d & mpeg_clk_pos_edge),
      .w_addr(w_addr),
      .w_data(mpeg_data_8_d),
 
@@ -209,27 +231,31 @@ module mpeg_recorder
   reg running;
   reg en_running;
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge sys_clk or negedge rst_n) begin //
     if (~rst_n) begin
       running <= 1'b0;
     end
-    else if (en_running && mpeg_sync) begin
-      running <= 1'b1;
-    end
-    else if (~en_running) begin
-      running <= 1'b0;
+    else if (mpeg_clk_pos_edge) begin
+      if (en_running) begin // && mpeg_sync) begin
+        running <= 1'b1;
+      end
+      else if (~en_running) begin
+        running <= 1'b0;
+      end
     end
   end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
 
-  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge sys_clk or negedge rst_n) begin //
     if (~rst_n) begin
       en_running <= 1'b0;
     end
-    else if (start) begin
-      en_running <= 1'b1;
-    end
-    else if (stop) begin
-      en_running <= 1'b0;
+    else if (mpeg_clk_pos_edge) begin
+      if (start) begin
+        en_running <= 1'b1;
+      end
+      else if (stop) begin
+        en_running <= 1'b0;
+      end
     end
   end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
   // //
