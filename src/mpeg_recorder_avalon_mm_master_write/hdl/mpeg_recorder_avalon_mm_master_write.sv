@@ -143,8 +143,12 @@ module mpeg_recorder_avalon_mm_master_write
             en_buffer1_done_irq <= 1'b1;
             address <= BUF0_BASE_ADDR;
           end
-          else begin
+          else if (address >= BUF0_BASE_ADDR && address <= BUF1_BASE_ADDR + BUFFER_LENGTH) begin
             address <= address + 32'd4; // Increment by 4 bytes
+          end
+          else begin
+            // Out of range
+            address <= BUF0_BASE_ADDR;
           end
         end
 

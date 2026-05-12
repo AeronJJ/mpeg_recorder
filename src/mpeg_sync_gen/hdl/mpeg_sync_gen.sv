@@ -29,7 +29,7 @@ module mpeg_sync_gen
   reg [31:0] clk_cycles_count_store_sys;
   reg        update_toggle_sys;
 
-  wire [31:0] next_value = (clk_cycles_count > 190) ? clk_cycles_count : 32'd190;
+  wire [31:0] next_value = (clk_cycles_count > 190 && clk_cycles_count < 1000) ? clk_cycles_count : 32'd190;
 
   // Capture value in sys_clk domain
   always_ff @ (posedge sys_clk or negedge rst_n) begin

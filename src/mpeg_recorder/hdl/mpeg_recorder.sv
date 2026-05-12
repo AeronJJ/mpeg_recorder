@@ -92,12 +92,15 @@ module mpeg_recorder
   
   // Delay mpeg_data by one clock cycle //
   reg [MPEG_DATA_WIDTH - 1:0] mpeg_data_8_d;
+  reg                         mpeg_valid_d;
   always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin
     if (~rst_n) begin
       mpeg_data_8_d <= '0;
+      mpeg_valid_d <= 1'b0;
     end
     else begin
       mpeg_data_8_d <= mpeg_data_8;
+      mpeg_valid_d <= mpeg_valid;
     end
   end
   // //
@@ -112,18 +115,18 @@ module mpeg_recorder
       packet_started <= 1'b0;
     end
     else if (running) begin
-      if (mpeg_sync) begin
+      if (mpeg_sync && ~packet_started) begin
 	w_addr <= '0;
 	packet_started <= 1'b1;
       end
       else if (packet_done) begin
 	packet_started <= 1'b0;
       end
-      else if (packet_started) begin
+      else if (packet_started && mpeg_valid_d) begin
 	w_addr <= w_addr + 1'b1;
       end
     end
-  end // always_ff @ (negedge mpeg_clk_6MHz or posedge mpeg_sync)
+  end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
   // //
 
   // Generate write enable signal to swap between packet buffers //
@@ -170,7 +173,7 @@ module mpeg_recorder
      .rst_n(rst_n),
      
      .w_clk(~mpeg_clk_6MHz),
-     .w_en(w_en_mem0 & packet_started),
+     .w_en(w_en_mem0 & packet_started & mpeg_valid_d),
      .w_addr(w_addr),
      .w_data(mpeg_data_8_d),
      
@@ -191,7 +194,7 @@ module mpeg_recorder
      .rst_n(rst_n),
      
      .w_clk(~mpeg_clk_6MHz),
-     .w_en(~w_en_mem0 & packet_started),
+     .w_en(~w_en_mem0 & packet_started & mpeg_valid_d),
      .w_addr(w_addr),
      .w_data(mpeg_data_8_d),
 
@@ -206,7 +209,7 @@ module mpeg_recorder
   reg running;
   reg en_running;
 
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       running <= 1'b0;
     end
@@ -218,7 +221,7 @@ module mpeg_recorder
     end
   end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
 
-  always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n) begin //
+  always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n) begin //
     if (~rst_n) begin
       en_running <= 1'b0;
     end
@@ -228,7 +231,7 @@ module mpeg_recorder
     else if (stop) begin
       en_running <= 1'b0;
     end
-  end // always_ff @ (negedge mpeg_clk_6MHz or negedge rst_n)
+  end // always_ff @ (posedge mpeg_clk_6MHz or negedge rst_n)
   // //
 
   // Sync running into sys clk //

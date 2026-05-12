@@ -112,6 +112,23 @@ module mpeg_top_level
   end
   // //
 
+  // Debounce switches //
+  wire [3:0] mode_switch_test_db;
+  debounce_switches 
+    #(
+      .CLK_FREQ_HZ(50_000_000),
+      .DEBOUNCE_MS(20)
+      ) 
+  debounce_inst
+    (
+     .clk    (sys_clk_100MHz),
+     .rst_n  (rst_n),
+     .sw_in  (mode_switch_test),
+     .sw_out (mode_switch_test_db)
+     );
+
+  // //
+
   // MPEG Recorder //
   wire [31:0] r_data_32;
   wire [5:0]  r_addr;
@@ -234,15 +251,15 @@ module mpeg_top_level
 
   // LCD //
   wire [3:0] mode; // Onehot (playback, record, passthrough, idle)
-  // assign mode = mode_switch_test;
+  assign mode = mode_switch_test_db;
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
      .sys_clk_100MHz(sys_clk_100MHz),
      .sys_clk_1MHz(sys_clk_1MHz),
      .recording(recording),
-     .mode(mode),
-     // .mode(),
+     // .mode(mode),
+     .mode(),
      .lcd_cs_out(lcd_cs_out),
      .lcd_dcrs_out(lcd_dcrs_out),
      .lcd_sdi_out(lcd_sdi_out),
@@ -301,4 +318,76 @@ module mpeg_top_level
      );
   
 endmodule // mpeg_top_level
+
+module debounce_switches 
+  #(
+    parameter integer CLK_FREQ_HZ = 50_000_000,
+    parameter integer DEBOUNCE_MS = 20
+    )
+  (
+   input wire       clk,
+   input wire       rst_n,
+
+   input wire [3:0] sw_in,
+   output reg [3:0] sw_out
+   );
+
+  // Number of clock cycles required for debounce period
+  localparam integer COUNT_MAX = (CLK_FREQ_HZ / 1000) * DEBOUNCE_MS;
+
+  // Counter width
+  localparam integer COUNTER_WIDTH = $clog2(COUNT_MAX);
+
+  reg [3:0]          sw_sync_0;
+  reg [3:0]          sw_sync_1;
+
+  reg [COUNTER_WIDTH-1:0] counter [3:0];
+
+  integer                 i;
+
+  // Synchronise switches to FPGA clock domain
+  always_ff @ (posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
+      sw_sync_0 <= '0;
+      sw_sync_1 <= '0;
+    end
+    else begin
+      sw_sync_0 <= sw_in;
+      sw_sync_1 <= sw_sync_0;
+    end
+  end
+
+  // Debounce logic
+  always_ff @ (posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
+      sw_out <= 4'b0000;
+      for (i = 0; i < 4; i = i + 1) begin
+        counter[i] <= 0;
+      end
+    end 
+    else begin
+      for (i = 0; i < 4; i = i + 1) begin
+        // Input changed from stable output
+        if (sw_sync_1[i] != sw_out[i]) begin
+
+          // Count until debounce time expires
+          if (counter[i] < COUNT_MAX - 1) begin
+            counter[i] <= counter[i] + 1;
+          end 
+          else begin
+            // Accept new stable state
+            sw_out[i] <= sw_sync_1[i];
+            counter[i] <= 0;
+          end
+
+        end 
+        else begin
+          // No change, reset counter
+          counter[i] <= 0;
+        end
+      end
+    end
+  end
+
+endmodule
 `default_nettype wire
