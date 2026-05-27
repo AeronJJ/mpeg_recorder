@@ -251,15 +251,15 @@ module mpeg_top_level
 
   // LCD //
   wire [3:0] mode; // Onehot (playback, record, passthrough, idle)
-  assign mode = mode_switch_test_db;
+  // assign mode = mode_switch_test_db;
   mpeg_user_interface mpeg_user_interface0
     (
      .rst_n(rst_n_gated),
      .sys_clk_100MHz(sys_clk_100MHz),
      .sys_clk_1MHz(sys_clk_1MHz),
      .recording(recording),
-     // .mode(mode),
-     .mode(),
+     .mode(mode),
+     // .mode(),
      .lcd_cs_out(lcd_cs_out),
      .lcd_dcrs_out(lcd_dcrs_out),
      .lcd_sdi_out(lcd_sdi_out),
